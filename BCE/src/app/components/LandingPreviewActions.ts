@@ -5,6 +5,10 @@ import {
   fetchAllAptitudeQuestions,
   fetchAllSolvedAptitudeProgress,
 } from '@/features/code-arena/data/aptitudeSheetTypes';
+import {
+  fetchAllTcsQuestions,
+  fetchAllSolvedTcsProgress,
+} from '@/features/code-arena/data/tcsPrepTypes';
 
 function formatError(err: any): string {
   if (!err) return 'Unknown error';
@@ -480,6 +484,46 @@ export async function getExploreSheetDetails(sheetId: string) {
         });
         solvers = Array.from(solverMap.values())
           .map((s) => ({ name: s.name, avatarUrl: s.avatarUrl, solvedCount: s.qSet.size }))
+          .sort((a, b) => b.solvedCount - a.solvedCount)
+          .slice(0, 15);
+      }
+    } else if ((sheet as any).sheet_type === 'TCS_PREP') {
+      const [tcsQs, tcsProg] = await Promise.all([
+        fetchAllTcsQuestions(adminClient, sheetId),
+        fetchAllSolvedTcsProgress(adminClient, sheetId, true),
+      ]);
+
+      problems = tcsQs.map((q) => ({
+        id: q.id,
+        title: `Q${q.question_number}. ${q.question}`,
+        difficulty: q.difficulty === 'HARD' ? 'Hard' : q.difficulty === 'MEDIUM' ? 'Medium' : 'Easy',
+        external_platform: q.category,
+        tags: [`Ch ${q.chapter_number}: ${q.chapter_title}`, q.level_label],
+        order_index: q.question_number - 1,
+      }));
+
+      difficultyStats.Total = problems.length;
+      problems.forEach((p: any) => {
+        if (p.difficulty === 'Hard') difficultyStats.Hard++;
+        else if (p.difficulty === 'Medium') difficultyStats.Medium++;
+        else difficultyStats.Easy++;
+      });
+
+      if (tcsProg.length > 0) {
+        const solverMap = new Map<string, { name: string; avatarUrl: string | null; itemSet: Set<string> }>();
+        tcsProg.forEach((row) => {
+          const uid = row.user_id;
+          if (!solverMap.has(uid)) {
+            solverMap.set(uid, {
+              name: row.profiles?.name || 'TCS Prep Learner',
+              avatarUrl: row.profiles?.avatar_url || null,
+              itemSet: new Set(),
+            });
+          }
+          solverMap.get(uid)!.itemSet.add(row.item_key);
+        });
+        solvers = Array.from(solverMap.values())
+          .map((s) => ({ name: s.name, avatarUrl: s.avatarUrl, solvedCount: s.itemSet.size }))
           .sort((a, b) => b.solvedCount - a.solvedCount)
           .slice(0, 15);
       }

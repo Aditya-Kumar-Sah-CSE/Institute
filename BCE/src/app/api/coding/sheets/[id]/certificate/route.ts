@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllSolvedAptitudeProgress } from '@/features/code-arena/data/aptitudeSheetTypes';
+import { fetchAllSolvedTcsProgress } from '@/features/code-arena/data/tcsPrepTypes';
 
 export async function GET(
   request: Request,
@@ -135,6 +136,46 @@ export async function POST(
         allAptProgress.forEach((row) => {
           if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
           solverCounts[row.user_id].add(row.question_number);
+        });
+        const completers = Object.entries(solverCounts)
+          .filter(([, set]) => set.size >= totalProblems)
+          .map(([uid]) => uid);
+        rank = Math.max(1, completers.indexOf(user.id) + 1);
+      }
+    } else if ((sheet as any).sheet_type === 'TCS_PREP') {
+      const { count: tcsTotal } = await supabase
+        .from('coding_sheet_tcs_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId);
+      totalProblems = tcsTotal || 0;
+
+      if (totalProblems === 0) {
+        return NextResponse.json({ error: 'TCS Prep sheet has no questions' }, { status: 400 });
+      }
+
+      const { count: userTcsSolved } = await supabase
+        .from('coding_sheet_tcs_progress')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId)
+        .eq('user_id', user.id)
+        .eq('item_type', 'MCQ')
+        .eq('is_solved', true);
+      solvedCount = userTcsSolved || 0;
+
+      if (solvedCount < totalProblems) {
+        return NextResponse.json(
+          { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} TCS Prep MCQs.` },
+          { status: 400 }
+        );
+      }
+
+      const allTcsProgress = await fetchAllSolvedTcsProgress(supabase, sheetId, false);
+      if (allTcsProgress.length > 0) {
+        const solverCounts: Record<string, Set<string>> = {};
+        allTcsProgress.forEach((row) => {
+          if (row.item_type !== 'MCQ') return;
+          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
+          solverCounts[row.user_id].add(row.item_key);
         });
         const completers = Object.entries(solverCounts)
           .filter(([, set]) => set.size >= totalProblems)

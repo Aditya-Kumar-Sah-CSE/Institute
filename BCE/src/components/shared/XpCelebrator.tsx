@@ -13,6 +13,7 @@ interface XpEvent {
 export default function XpCelebrator() {
   const [xpEvents, setXpEvents] = useState<XpEvent[]>([]);
   const popupRef = useRef<HTMLDivElement>(null);
+  const autoCloseTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const [isSharing, setIsSharing] = useState(false);
   const [isAddingToStory, setIsAddingToStory] = useState(false);
 
@@ -147,10 +148,12 @@ export default function XpCelebrator() {
             (payload) => {
               const newEvent = payload.new as XpEvent;
               setXpEvents(prev => [...prev, newEvent]);
-              
-              setTimeout(() => {
+
+              const timer = setTimeout(() => {
+                autoCloseTimersRef.current.delete(timer);
                 setXpEvents(prev => prev.filter(e => e.id !== newEvent.id));
-              }, 10000);
+              }, 1000);
+              autoCloseTimersRef.current.add(timer);
             }
           )
           .subscribe();
@@ -158,7 +161,10 @@ export default function XpCelebrator() {
   
       setupRealtime();
   
+      const timers = autoCloseTimersRef.current;
       return () => {
+        timers.forEach(clearTimeout);
+        timers.clear();
         if (channel) {
           supabase.removeChannel(channel);
         }

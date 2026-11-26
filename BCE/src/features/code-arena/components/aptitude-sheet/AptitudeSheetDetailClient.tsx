@@ -147,6 +147,7 @@ export default function AptitudeSheetDetailClient({
   // Modals
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [certificate, setCertificate] = useState<any>(initialCertificate);
   const [claimingCert, setClaimingCert] = useState(false);
@@ -573,17 +574,23 @@ export default function AptitudeSheetDetailClient({
               </div>
             </div>
 
-            <div className="sheet-stat-box">
-              <Star size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {reviewsData?.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  {reviewsData?.stats?.totalReviews || 0} Reviews
+            {!isPublicPreview && (
+              <div
+                className="sheet-stat-box clickable"
+                onClick={() => setShowReviewsModal(true)}
+                title="View or Write Sheet Reviews"
+              >
+                <Star size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {reviewsData?.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    {reviewsData?.stats?.totalReviews || 0} Reviews
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div
               className="sheet-stat-box clickable"
@@ -1031,9 +1038,14 @@ export default function AptitudeSheetDetailClient({
         />
       )}
 
-      {/* Reviews Section */}
+      {/* Reviews Popup Modal */}
       {!isPublicPreview && reviewsData && (
-        <div style={{ marginTop: '12px' }}>
+        <Modal
+          isOpen={showReviewsModal}
+          onClose={() => setShowReviewsModal(false)}
+          title="Sheet Ratings & Feedback"
+          size="lg"
+        >
           <SheetReviewsSection
             sheetId={sheet.id}
             currentUserId={currentUserId}
@@ -1041,8 +1053,9 @@ export default function AptitudeSheetDetailClient({
             reviews={reviewsData.reviews}
             userReview={reviewsData.userReview}
             stats={reviewsData.stats}
+            inModal={true}
           />
-        </div>
+        </Modal>
       )}
 
       {/* Leaderboard Modal */}

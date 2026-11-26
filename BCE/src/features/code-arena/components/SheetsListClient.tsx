@@ -59,9 +59,9 @@ export default function SheetsListClient({
 
     const visibleSheets = initialSheets.map(s => {
       const problemsList = s.coding_sheet_problems || [];
-      const isSpecial = s.sheet_type === 'SQL' || s.sheet_type === 'ROADMAP' || s.sheet_type === 'APTITUDE';
+      const isSpecial = s.sheet_type === 'SQL' || s.sheet_type === 'ROADMAP' || s.sheet_type === 'APTITUDE' || s.sheet_type === 'TCS_PREP';
       const totalProblems = isSpecial
-        ? (s.metadata?.total_count || (s.sheet_type === 'APTITUDE' ? 1139 : s.sheet_type === 'SQL' ? 530 : 90))
+        ? (s.metadata?.total_count || (s.sheet_type === 'TCS_PREP' ? 1427 : s.sheet_type === 'APTITUDE' ? 1139 : s.sheet_type === 'SQL' ? 530 : 90))
         : problemsList.length;
       const solvedProblems = isSpecial
         ? (sqlSolvedCountBySheet[s.id] || 0)
@@ -252,9 +252,9 @@ export default function SheetsListClient({
         <div className="sheets-grid">
           {filteredSheets.map((sheet) => {
             const problemsList = sheet.coding_sheet_problems || [];
-            const isSpecialSheet = sheet.sheet_type === 'SQL' || sheet.sheet_type === 'ROADMAP' || sheet.sheet_type === 'APTITUDE';
+            const isSpecialSheet = sheet.sheet_type === 'SQL' || sheet.sheet_type === 'ROADMAP' || sheet.sheet_type === 'APTITUDE' || sheet.sheet_type === 'TCS_PREP';
             const totalProblems = isSpecialSheet
-              ? (sheet.metadata?.total_count || (sheet.sheet_type === 'APTITUDE' ? 1139 : sheet.sheet_type === 'SQL' ? 530 : 90))
+              ? (sheet.metadata?.total_count || (sheet.sheet_type === 'TCS_PREP' ? 1427 : sheet.sheet_type === 'APTITUDE' ? 1139 : sheet.sheet_type === 'SQL' ? 530 : 90))
               : problemsList.length;
             const solvedProblems = isSpecialSheet
               ? (sqlSolvedCountBySheet[sheet.id] || 0)
@@ -336,6 +336,11 @@ export default function SheetsListClient({
                           <Calculator size={11} /> Aptitude • 29 Chapters
                         </span>
                       )}
+                      {sheet.sheet_type === 'TCS_PREP' && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 7px', borderRadius: '8px' }}>
+                          <Trophy size={11} /> TCS Prep · 13 Mocks
+                        </span>
+                      )}
                       {sheet.sheet_type === 'ROADMAP' && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', fontWeight: 800, color: '#0284c7', background: 'rgba(14,165,233,0.14)', border: '1px solid rgba(14,165,233,0.3)', padding: '2px 7px', borderRadius: '8px' }}>
                           <Layers size={11} /> Levels 1–5 Roadmap
@@ -345,7 +350,7 @@ export default function SheetsListClient({
                         <span style={{ fontSize: '11px', fontWeight: 700, color: '#06b6d4', background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: '8px' }}>
                           {sheet.sheet_type === 'ROADMAP'
                             ? `${totalProblems} / ${sheet.metadata?.planned_total_count || 520} problems`
-                            : `${totalProblems} ${sheet.sheet_type === 'SQL' || sheet.sheet_type === 'APTITUDE' ? 'questions' : 'problems'}`}
+                            : `${totalProblems} ${sheet.sheet_type === 'SQL' || sheet.sheet_type === 'APTITUDE' || sheet.sheet_type === 'TCS_PREP' ? 'questions' : 'problems'}`}
                         </span>
                       )}
                     </div>
@@ -495,6 +500,8 @@ export default function SheetsListClient({
                     ? `${enrollSheet.metadata?.total_count || 530} questions`
                     : enrollSheet.sheet_type === 'APTITUDE'
                     ? `${enrollSheet.metadata?.total_count || 1139} questions`
+                    : enrollSheet.sheet_type === 'TCS_PREP'
+                    ? `${enrollSheet.metadata?.total_count || 1427} MCQs · 23 C++ · 13 Mocks`
                     : enrollSheet.sheet_type === 'ROADMAP'
                     ? `${enrollSheet.metadata?.total_count || 90} active / ${enrollSheet.metadata?.planned_total_count || 520} roadmap problems`
                     : `${(enrollSheet.coding_sheet_problems || []).length} problems`}

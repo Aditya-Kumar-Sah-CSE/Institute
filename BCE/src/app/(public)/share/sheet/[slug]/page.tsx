@@ -10,7 +10,11 @@ import {
   fetchAllAptitudeQuestions,
   fetchAptitudeChaptersAndProgress,
 } from '@/features/code-arena/data/aptitudeSheetTypes';
-import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
+import TcsPrepSheetDetailClient from '@/features/code-arena/components/tcs-prep/TcsPrepSheetDetailClient';
+import {
+  fetchAllTcsQuestions,
+  fetchTcsPrepCoreData,
+} from '@/features/code-arena/data/tcsPrepTypes';
 
 function getSupabaseClient() {
   return createClient(
@@ -44,6 +48,7 @@ async function getPublicSheetData(slugOrId: string) {
   let roadmapProblems: any[] = [];
   let aptitudeChapters: any[] = [];
   let aptitudeQuestions: any[] = [];
+  let tcsData: { chapters: any[]; questions: any[]; drills: any[]; mockHeaders: any[] } | null = null;
 
   if ((sheet as any).sheet_type === 'SQL') {
     const { data: sqlData } = await supabase
@@ -59,6 +64,17 @@ async function getPublicSheetData(slugOrId: string) {
     ]);
     aptitudeChapters = chapters;
     aptitudeQuestions = aptQuestions;
+  } else if ((sheet as any).sheet_type === 'TCS_PREP') {
+    const [tcsQs, core] = await Promise.all([
+      fetchAllTcsQuestions(supabase, sheet.id),
+      fetchTcsPrepCoreData(supabase, sheet.id),
+    ]);
+    tcsData = {
+      chapters: core.chapters,
+      questions: tcsQs,
+      drills: core.drills,
+      mockHeaders: core.mockHeaders,
+    };
   } else if ((sheet as any).sheet_type === 'ROADMAP') {
     const [{ data: lvlData }, { data: probData }] = await Promise.all([
       supabase
@@ -120,6 +136,7 @@ async function getPublicSheetData(slugOrId: string) {
     roadmapProblems,
     aptitudeChapters,
     aptitudeQuestions,
+    tcsData,
   };
 }
 
@@ -148,6 +165,8 @@ export async function generateMetadata({
       ? sheet.sqlQuestions.length
       : sheet.sheet_type === 'APTITUDE'
       ? sheet.aptitudeQuestions.length
+      : sheet.sheet_type === 'TCS_PREP'
+      ? (sheet.tcsData?.questions.length || 1427)
       : sheet.sheet_type === 'ROADMAP'
       ? sheet.roadmapProblems.length
       : sheet.problems.length;
@@ -197,14 +216,12 @@ export default async function PublicSheetPage({
   const shareUrl = `${baseUrl}/share/sheet/${sheet.slug || sheet.id}`;
 
   if (sheet.sheet_type === 'SQL') {
-    const reviewsData = await getSheetReviewsData(sheet.id);
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
         <SqlSheetDetailClient
           sheet={sheet}
           questions={sheet.sqlQuestions}
           initialProgress={[]}
-          reviewsData={reviewsData}
           isPublicPreview={true}
         />
       </div>
@@ -212,7 +229,6 @@ export default async function PublicSheetPage({
   }
 
   if (sheet.sheet_type === 'APTITUDE') {
-    const reviewsData = await getSheetReviewsData(sheet.id);
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
         <AptitudeSheetDetailClient
@@ -220,7 +236,23 @@ export default async function PublicSheetPage({
           chapters={sheet.aptitudeChapters}
           questions={sheet.aptitudeQuestions}
           initialProgress={[]}
-          reviewsData={reviewsData}
+          isPublicPreview={true}
+        />
+      </div>
+    );
+  }
+
+  if (sheet.sheet_type === 'TCS_PREP' && sheet.tcsData) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
+        <TcsPrepSheetDetailClient
+          sheet={sheet}
+          chapters={sheet.tcsData.chapters}
+          questions={sheet.tcsData.questions}
+          drills={sheet.tcsData.drills}
+          mockHeaders={sheet.tcsData.mockHeaders}
+          initialProgress={[]}
+          initialMockAttempts={[]}
           isPublicPreview={true}
         />
       </div>
@@ -228,7 +260,6 @@ export default async function PublicSheetPage({
   }
 
   if (sheet.sheet_type === 'ROADMAP') {
-    const reviewsData = await getSheetReviewsData(sheet.id);
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px', paddingInline: '16px' }}>
         <RoadmapSheetDetailClient
@@ -236,7 +267,6 @@ export default async function PublicSheetPage({
           levels={sheet.roadmapLevels}
           problems={sheet.roadmapProblems}
           initialProgress={[]}
-          reviewsData={reviewsData}
           isPublicPreview={true}
         />
       </div>

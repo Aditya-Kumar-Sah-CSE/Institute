@@ -21,6 +21,7 @@ interface SheetReviewsSectionProps {
     totalReviews: number;
     breakdown: { 5: number; 4: number; 3: number; 2: number; 1: number };
   };
+  inModal?: boolean;
 }
 
 export default function SheetReviewsSection({
@@ -29,7 +30,8 @@ export default function SheetReviewsSection({
   isStaff,
   reviews,
   userReview: initialUserReview,
-  stats
+  stats,
+  inModal = false,
 }: SheetReviewsSectionProps) {
   const router = useRouter();
   const [userReview, setUserReview] = useState<SheetReview | null>(initialUserReview);
@@ -44,7 +46,7 @@ export default function SheetReviewsSection({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!inModal);
 
   const handleOpenForm = () => {
     if (!currentUserId) {
@@ -54,6 +56,7 @@ export default function SheetReviewsSection({
     setRating(userReview?.rating || 5);
     setReviewText(userReview?.review_text || '');
     setIsPublic(userReview ? userReview.is_public : true);
+    setIsCollapsed(false);
     setIsFormOpen(true);
   };
 
@@ -124,25 +127,25 @@ export default function SheetReviewsSection({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const pagedReviews = displayedReviews.slice(0, visibleCount);
 
-  return (
-    <Card variant="glass" className="sheet-reviews-section" style={{ padding: 'var(--space-xl)', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
-          <div>
-            <h2 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              <Star size={26} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))' }} /> Sheet Ratings & Feedback
-            </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              Community ratings and reviews for this practice coding sheet
-            </p>
-          </div>
+  const innerBody = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+        <div>
+          <h2 className="section-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: inModal ? '1.15rem' : '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <Star size={inModal ? 20 : 26} style={{ color: '#f59e0b', fill: '#f59e0b', filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.6))' }} /> Sheet Ratings &amp; Feedback
+          </h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            Community ratings and reviews for this practice coding sheet
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Button onClick={handleOpenForm} style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 0 16px rgba(6, 182, 212, 0.3)' }}>
-              <Edit3 size={16} /> {userReview ? 'Edit Your Review' : 'Write a Review'}
-            </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Button onClick={handleOpenForm} style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 0 16px rgba(6, 182, 212, 0.3)' }}>
+            <Edit3 size={16} /> {userReview ? 'Edit Your Review' : 'Write a Review'}
+          </Button>
 
+          {!inModal && (
             <button
               type="button"
               onClick={() => setIsCollapsed(prev => !prev)}
@@ -165,11 +168,12 @@ export default function SheetReviewsSection({
             >
               {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
             </button>
-          </div>
+          )}
         </div>
+      </div>
 
-        {!isCollapsed && (
-          <>
+      {!isCollapsed && (
+        <>
             {error && <p style={{ color: 'var(--neon-red)', fontSize: 'var(--text-sm)', margin: 0, padding: '10px 14px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>{error}</p>}
             {successMsg && <p style={{ color: '#10b981', fontSize: 'var(--text-sm)', margin: 0, padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{successMsg}</p>}
 
@@ -481,6 +485,19 @@ export default function SheetReviewsSection({
         </>
         )}
       </div>
+  );
+
+  if (inModal) {
+    return (
+      <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>
+        {innerBody}
+      </div>
+    );
+  }
+
+  return (
+    <Card variant="glass" className="sheet-reviews-section" style={{ padding: 'var(--space-xl)', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}>
+      {innerBody}
     </Card>
   );
 }

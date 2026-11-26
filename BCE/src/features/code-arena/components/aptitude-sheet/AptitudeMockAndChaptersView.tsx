@@ -21,6 +21,7 @@ import type {
   AptitudeQuestion,
   AptitudeProgress,
 } from '@/features/code-arena/data/aptitudeSheetTypes';
+import FocusTimer from '@/features/code-arena/components/FocusTimer';
 
 interface ChaptersHandbookProps {
   chapters: AptitudeChapter[];
@@ -450,10 +451,12 @@ export function AptitudeMockTestView({
           </span>
         </div>
         <div className="sql-card-actions-right">
-          {enableTimer && (
+          {enableTimer ? (
             <span className="sql-xp-burst" style={{ color: secondsLeft < 60 ? '#ef4444' : '#0284c7' }}>
               <Clock size={12} /> {formatTimer(secondsLeft)}
             </span>
+          ) : (
+            <FocusTimer resetKey={currentQ.question_number} />
           )}
           {sessionXp > 0 && (
             <span className="sql-xp-burst">

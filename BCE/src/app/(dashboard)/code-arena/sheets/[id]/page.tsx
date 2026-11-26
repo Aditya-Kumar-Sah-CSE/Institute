@@ -11,6 +11,12 @@ import {
   fetchAllSolvedAptitudeProgress,
   fetchAptitudeChaptersAndProgress,
 } from '@/features/code-arena/data/aptitudeSheetTypes';
+import TcsPrepSheetDetailClient from '@/features/code-arena/components/tcs-prep/TcsPrepSheetDetailClient';
+import {
+  fetchAllTcsQuestions,
+  fetchAllSolvedTcsProgress,
+  fetchTcsPrepCoreData,
+} from '@/features/code-arena/data/tcsPrepTypes';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
@@ -202,6 +208,88 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           chapters={aptitudeChapters}
           questions={aptitudeQuestions}
           initialProgress={aptitudeProgress}
+          totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
+          enrolledUsersList={enrolledUsersList}
+          totalSolversCount={solverMap.size}
+          leaderboardList={leaderboardList}
+          initialCertificate={existingCert || null}
+          reviewsData={sheetReviewsData as any}
+          currentUserId={user.id}
+          isInstructor={isInstructor}
+          isPublicPreview={false}
+        />
+      </Suspense>
+    );
+  }
+
+  // Dedicated rich view for Complete TCS NQT Prep & 13 Mock Papers sheet
+  if ((sheet as any).sheet_type === 'TCS_PREP') {
+    const [
+      tcsQuestions,
+      { chapters: tcsChapters, drills: tcsDrills, mockHeaders: tcsMockHeaders, progress: tcsProgress, mockAttempts: tcsMockAttempts },
+      { data: enrollmentsData, count: enrollmentsCount },
+      allTcsProgress,
+      { data: existingCert },
+      sheetReviewsData,
+    ] = await Promise.all([
+      fetchAllTcsQuestions(supabase, sheet.id),
+      fetchTcsPrepCoreData(supabase, sheet.id, user.id),
+      serviceRoleClient
+        .from('coding_sheet_enrollments')
+        .select('user_id, enrolled_at, profiles(id, name, avatar_url)', { count: 'exact' })
+        .eq('sheet_id', sheet.id)
+        .order('enrolled_at', { ascending: false }),
+      fetchAllSolvedTcsProgress(serviceRoleClient, sheet.id, true),
+      supabase
+        .from('certificates')
+        .select('*, profiles(name, role)')
+        .eq('user_id', user.id)
+        .eq('sheet_id', sheet.id)
+        .maybeSingle(),
+      getSheetReviewsData(sheet.id, user.id),
+    ]);
+
+    const enrolledUsersList = (enrollmentsData || []).map((e: any) => ({
+      user_id: e.user_id,
+      enrolled_at: e.enrolled_at,
+      name: e.profiles?.name || 'Learner',
+      avatar_url: e.profiles?.avatar_url || null,
+    }));
+
+    const solverMap = new Map<string, { userId: string; name: string; avatar_url: string | null; itemSet: Set<string> }>();
+    allTcsProgress.forEach((row: any) => {
+      if (!solverMap.has(row.user_id)) {
+        solverMap.set(row.user_id, {
+          userId: row.user_id,
+          name: row.profiles?.name || 'TCS Prep Learner',
+          avatar_url: row.profiles?.avatar_url || null,
+          itemSet: new Set(),
+        });
+      }
+      solverMap.get(row.user_id)!.itemSet.add(row.item_key);
+    });
+
+    const leaderboardList = Array.from(solverMap.values())
+      .map((s) => ({
+        userId: s.userId,
+        name: s.name,
+        avatar_url: s.avatar_url,
+        solvedCount: s.itemSet.size,
+        isCurrentUser: s.userId === user.id,
+      }))
+      .sort((a, b) => b.solvedCount - a.solvedCount)
+      .slice(0, 30);
+
+    return (
+      <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading TCS Complete Prep &amp; Mock Sheet…</div>}>
+        <TcsPrepSheetDetailClient
+          sheet={sheet as any}
+          chapters={tcsChapters}
+          questions={tcsQuestions}
+          drills={tcsDrills}
+          mockHeaders={tcsMockHeaders}
+          initialProgress={tcsProgress}
+          initialMockAttempts={tcsMockAttempts}
           totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
           enrolledUsersList={enrolledUsersList}
           totalSolversCount={solverMap.size}

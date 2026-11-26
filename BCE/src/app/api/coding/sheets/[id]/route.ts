@@ -70,6 +70,26 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     });
   }
 
+  if ((sheet as any).sheet_type === 'TCS_PREP') {
+    const { fetchAllTcsQuestions, fetchTcsPrepCoreData } = await import('@/features/code-arena/data/tcsPrepTypes');
+    const [tcsQuestions, core] = await Promise.all([
+      fetchAllTcsQuestions(supabase, sheet.id),
+      fetchTcsPrepCoreData(supabase, sheet.id, user.id),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...sheet,
+        problems: [],
+        tcsChapters: core.chapters,
+        tcsQuestions,
+        tcsDrills: core.drills,
+        tcsMockHeaders: core.mockHeaders,
+      },
+    });
+  }
+
   if ((sheet as any).sheet_type === 'ROADMAP') {
     const [{ data: roadmapLevels, error: lvlErr }, { data: roadmapProblems, error: probErr }] = await Promise.all([
       supabase

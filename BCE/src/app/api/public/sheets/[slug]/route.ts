@@ -63,6 +63,7 @@ export async function GET(
     let roadmapProblems: any[] = [];
     let aptitudeChapters: any[] = [];
     let aptitudeQuestions: any[] = [];
+    let tcsPayload: any = null;
 
     if ((sheet as any).sheet_type === 'SQL') {
       const { data: sqlData } = await supabase
@@ -81,6 +82,20 @@ export async function GET(
       ]);
       aptitudeChapters = chapters;
       aptitudeQuestions = aptQs;
+    } else if ((sheet as any).sheet_type === 'TCS_PREP') {
+      const { fetchAllTcsQuestions, fetchTcsPrepCoreData } = await import(
+        '@/features/code-arena/data/tcsPrepTypes'
+      );
+      const [tcsQs, core] = await Promise.all([
+        fetchAllTcsQuestions(supabase, sheet.id),
+        fetchTcsPrepCoreData(supabase, sheet.id),
+      ]);
+      tcsPayload = {
+        chapters: core.chapters,
+        questions: tcsQs,
+        drills: core.drills,
+        mockHeaders: core.mockHeaders,
+      };
     } else if ((sheet as any).sheet_type === 'ROADMAP') {
       const [{ data: lvlData }, { data: probData }] = await Promise.all([
         supabase
@@ -145,6 +160,7 @@ export async function GET(
         roadmapProblems,
         aptitudeChapters,
         aptitudeQuestions,
+        tcsData: tcsPayload,
       },
     });
   } catch (err: any) {

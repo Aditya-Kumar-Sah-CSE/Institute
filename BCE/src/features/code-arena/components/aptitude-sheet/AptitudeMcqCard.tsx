@@ -19,6 +19,7 @@ import type {
   AptitudeQuestion,
   AptitudeProgress,
 } from '@/features/code-arena/data/aptitudeSheetTypes';
+import FocusTimer from '@/features/code-arena/components/FocusTimer';
 
 interface AptitudeMcqCardProps {
   question: AptitudeQuestion;
@@ -46,10 +47,12 @@ export default function AptitudeMcqCard({
   const [showChapterNotes, setShowChapterNotes] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [recentXp, setRecentXp] = useState<number>(0);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
 
   useEffect(() => {
     setRecentXp(0);
     setShowChapterNotes(false);
+    setRetryNonce(0);
   }, [question.question_number]);
 
   useEffect(() => {
@@ -92,6 +95,7 @@ export default function AptitudeMcqCard({
     setSelectedOption(null);
     setHasChecked(false);
     setRecentXp(0);
+    setRetryNonce((n) => n + 1);
   };
 
   const diffClass =
@@ -118,6 +122,7 @@ export default function AptitudeMcqCard({
         </div>
 
         <div className="sql-card-actions-right">
+          <FocusTimer resetKey={`${question.question_number}-${retryNonce}`} />
           {recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0) ? (
             <span className="sql-xp-burst">
               <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP

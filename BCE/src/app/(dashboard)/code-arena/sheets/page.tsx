@@ -15,14 +15,14 @@ export default async function CodingSheetsPage() {
     .select('id, slug, title, description, created_by, created_at, enrollment_access, sheet_type, metadata, coding_sheet_problems(problem_id)')
     .order('created_at', { ascending: false });
 
-  // Fetch user's solved SQL, Roadmap & Aptitude progress per sheet
-  const fetchUserAptitudeSolved = async () => {
+  // Fetch user's solved SQL, Roadmap, Aptitude & TCS Prep progress per sheet
+  const fetchPaginatedUserSolved = async (table: 'coding_sheet_aptitude_progress' | 'coding_sheet_tcs_progress') => {
     const PAGE = 1000;
-    const rows: Array<{ sheet_id: string; question_number: number }> = [];
+    const rows: Array<{ sheet_id: string }> = [];
     for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from('coding_sheet_aptitude_progress')
-        .select('sheet_id, question_number')
+      const { data, error } = await (supabase as any)
+        .from(table)
+        .select('sheet_id')
         .eq('user_id', user.id)
         .eq('is_solved', true)
         .range(from, from + PAGE - 1);
@@ -33,7 +33,7 @@ export default async function CodingSheetsPage() {
     return rows;
   };
 
-  const [{ data: sqlSolvedRows }, { data: roadmapSolvedRows }, aptitudeSolvedRows] = await Promise.all([
+  const [{ data: sqlSolvedRows }, { data: roadmapSolvedRows }, aptitudeSolvedRows, tcsSolvedRows] = await Promise.all([
     supabase
       .from('coding_sheet_sql_progress')
       .select('sheet_id, question_number')
@@ -44,17 +44,12 @@ export default async function CodingSheetsPage() {
       .select('sheet_id, problem_code')
       .eq('user_id', user.id)
       .eq('is_solved', true),
-    fetchUserAptitudeSolved(),
+    fetchPaginatedUserSolved('coding_sheet_aptitude_progress'),
+    fetchPaginatedUserSolved('coding_sheet_tcs_progress'),
   ]);
 
   const sqlSolvedCountBySheet: Record<string, number> = {};
-  (sqlSolvedRows || []).forEach((r: any) => {
-    sqlSolvedCountBySheet[r.sheet_id] = (sqlSolvedCountBySheet[r.sheet_id] || 0) + 1;
-  });
-  (roadmapSolvedRows || []).forEach((r: any) => {
-    sqlSolvedCountBySheet[r.sheet_id] = (sqlSolvedCountBySheet[r.sheet_id] || 0) + 1;
-  });
-  aptitudeSolvedRows.forEach((r) => {
+  [...(sqlSolvedRows || []), ...(roadmapSolvedRows || []), ...aptitudeSolvedRows, ...tcsSolvedRows].forEach((r: any) => {
     sqlSolvedCountBySheet[r.sheet_id] = (sqlSolvedCountBySheet[r.sheet_id] || 0) + 1;
   });
 

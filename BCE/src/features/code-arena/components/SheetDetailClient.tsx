@@ -122,6 +122,7 @@ export default function SheetDetailClient({
   const [solverSearch, setSolverSearch] = useState('');
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
   const [enrolledSearch, setEnrolledSearch] = useState('');
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
 
   // 10 problems per page pagination
   const [currentProblemPage, setCurrentProblemPage] = useState(1);
@@ -419,11 +420,8 @@ export default function SheetDetailClient({
     }
   };
 
-  const handleScrollToReviews = () => {
-    const section = document.getElementById('sheet-reviews-section');
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
-    }
+  const handleOpenReviewsModal = () => {
+    setShowReviewsModal(true);
   };
 
   return (
@@ -745,6 +743,21 @@ export default function SheetDetailClient({
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Box 5: Reviews & Feedback */}
+            <div
+              onClick={handleOpenReviewsModal}
+              className="sheet-stat-box clickable"
+              title="View or Write Sheet Reviews"
+            >
+              <Star size={15} style={{ color: '#f59e0b' }} />
+              <div>
+                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>REVIEWS</div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {reviewsData?.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'} ({reviewsData?.stats?.totalReviews || 0})
                 </div>
               </div>
             </div>
@@ -1376,8 +1389,13 @@ export default function SheetDetailClient({
         );
       })()}
 
-      {/* Practice Sheet Reviews Section */}
-      <div id="sheet-reviews-section" style={{ marginTop: 'var(--space-lg)' }}>
+      {/* Sheet Reviews Popup Modal */}
+      <Modal
+        isOpen={showReviewsModal}
+        onClose={() => setShowReviewsModal(false)}
+        title="Sheet Ratings & Feedback"
+        size="lg"
+      >
         <SheetReviewsSection
           sheetId={sheet.id}
           currentUserId={currentUser?.id}
@@ -1385,8 +1403,9 @@ export default function SheetDetailClient({
           reviews={reviewsData?.reviews || []}
           userReview={reviewsData?.userReview || null}
           stats={reviewsData?.stats || { averageRating: 0, totalReviews: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } }}
+          inModal={true}
         />
-      </div>
+      </Modal>
 
       {isEditing && (
         <CreateSheetWizard 

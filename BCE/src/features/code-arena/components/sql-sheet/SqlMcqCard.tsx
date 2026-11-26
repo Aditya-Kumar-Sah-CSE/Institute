@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { SqlSheetQuestion, SqlQuestionProgress } from '@/features/code-arena/data/sqlSheetReference';
+import FocusTimer from '@/features/code-arena/components/FocusTimer';
 
 interface SqlMcqCardProps {
   question: SqlSheetQuestion;
@@ -40,10 +41,12 @@ export default function SqlMcqCard({
   const [showConcepts, setShowConcepts] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [recentXp, setRecentXp] = useState<number>(0);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
 
   useEffect(() => {
     setRecentXp(0);
     setShowConcepts(false);
+    setRetryNonce(0);
   }, [question.question_number]);
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export default function SqlMcqCard({
     setSelectedOption(null);
     setHasChecked(false);
     setRecentXp(0);
+    setRetryNonce((n) => n + 1);
   };
 
   const diffClass =
@@ -107,6 +111,7 @@ export default function SqlMcqCard({
         </div>
 
         <div className="sql-card-actions-right">
+          <FocusTimer resetKey={`${question.question_number}-${retryNonce}`} />
           {(recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0)) && (
             <span className="sql-xp-burst">
               <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP

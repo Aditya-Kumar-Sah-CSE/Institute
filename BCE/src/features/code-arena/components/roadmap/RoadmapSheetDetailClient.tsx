@@ -18,6 +18,7 @@ import {
   Search,
   Share2,
   Sparkles,
+  Star,
   Trophy,
   Unlock,
   Users,
@@ -144,6 +145,7 @@ export default function RoadmapSheetDetailClient({
   // Modals & Certificate
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [certificate, setCertificate] = useState<any>(initialCertificate);
   const [showCertModal, setShowCertModal] = useState(false);
   const [claimingCert, setClaimingCert] = useState(false);
@@ -479,6 +481,18 @@ export default function RoadmapSheetDetailClient({
               >
                 <Users size={15} color="#0284c7" /> Enrolled ({totalEnrolledCount})
               </button>
+
+              {reviewsData && (
+                <button
+                  type="button"
+                  onClick={() => setShowReviewsModal(true)}
+                  className="rm-btn-outline"
+                  title="View or Write Sheet Reviews"
+                >
+                  <Star size={15} color="#f59e0b" />
+                  {reviewsData.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'} ({reviewsData.stats?.totalReviews || 0})
+                </button>
+              )}
 
               <button
                 type="button"
@@ -898,9 +912,14 @@ export default function RoadmapSheetDetailClient({
         />
       )}
 
-      {/* Sheet Reviews */}
+      {/* Sheet Reviews Popup Modal */}
       {!isPublicPreview && reviewsData && (
-        <div style={{ marginTop: '12px' }}>
+        <Modal
+          isOpen={showReviewsModal}
+          onClose={() => setShowReviewsModal(false)}
+          title="Sheet Ratings & Feedback"
+          size="lg"
+        >
           <SheetReviewsSection
             sheetId={sheet.id}
             currentUserId={currentUserId}
@@ -908,8 +927,9 @@ export default function RoadmapSheetDetailClient({
             reviews={reviewsData.reviews}
             userReview={reviewsData.userReview}
             stats={reviewsData.stats}
+            inModal={true}
           />
-        </div>
+        </Modal>
       )}
 
       {/* Leaderboard Modal */}

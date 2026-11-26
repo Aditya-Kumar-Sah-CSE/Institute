@@ -22,6 +22,7 @@ import {
   type SqlSheetQuestion,
   type SqlQuestionProgress,
 } from '@/features/code-arena/data/sqlSheetReference';
+import FocusTimer from '@/features/code-arena/components/FocusTimer';
 
 export function PracticeTablesView() {
   const [selectedTable, setSelectedTable] = useState<string>('employees');
@@ -383,6 +384,7 @@ export function QuizSessionView({
           <span className="sql-section-pill">{currentQ.section}</span>
         </div>
         <div className="sql-card-actions-right">
+          <FocusTimer resetKey={currentQ.question_number} />
           {sessionXp > 0 && (
             <span className="sql-xp-burst">
               <Sparkles size={12} /> +{sessionXp} XP

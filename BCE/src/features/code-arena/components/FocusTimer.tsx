@@ -3,15 +3,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Timer, Play, Pause, RotateCcw } from 'lucide-react';
 
-export default function FocusTimer() {
+interface FocusTimerProps {
+  resetKey?: string | number;
+  autoStart?: boolean;
+}
+
+export default function FocusTimer({ resetKey, autoStart = true }: FocusTimerProps = {}) {
   const [time, setTime] = useState(0);
-  const [isActive, setIsActive] = useState(true);
+  const [isActive, setIsActive] = useState(autoStart);
   const [mounted, setMounted] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (resetKey === undefined) return;
+    setTime(0);
+    setIsActive(autoStart);
+  }, [resetKey, autoStart]);
 
   useEffect(() => {
     if (isActive && mounted) {
@@ -80,15 +91,15 @@ export default function FocusTimer() {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        background: 'rgba(15, 23, 42, 0.4)',
-        border: '1px solid var(--glass-border)',
+        background: 'rgba(15, 23, 42, 0.78)',
+        border: '1px solid var(--glass-border, rgba(6, 182, 212, 0.28))',
         borderRadius: '20px',
         padding: '4px 14px',
         fontSize: '12px',
         height: '28px',
         boxSizing: 'border-box',
-        color: isActive ? 'var(--neon-cyan)' : 'var(--text-secondary)',
-        boxShadow: isActive ? '0 0 10px rgba(6, 182, 212, 0.08)' : 'none',
+        color: isActive ? 'var(--neon-cyan, #22d3ee)' : '#cbd5e1',
+        boxShadow: isActive ? '0 0 10px rgba(6, 182, 212, 0.12)' : 'none',
         transition: 'all 0.3s ease',
         userSelect: 'none'
       }}
