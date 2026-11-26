@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import { generateUniqueSheetSlug } from '@/lib/slug-utils';
 import { createClient as createRawClient } from '@supabase/supabase-js';
+import {
+  fetchAllAptitudeQuestions,
+  fetchAptitudeChaptersAndProgress,
+} from '@/features/code-arena/data/aptitudeSheetTypes';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,6 +49,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         ...sheet,
         problems: [],
         sqlQuestions: sqlQuestions || [],
+      },
+    });
+  }
+
+  if ((sheet as any).sheet_type === 'APTITUDE') {
+    const [aptitudeQuestions, { chapters: aptitudeChapters }] = await Promise.all([
+      fetchAllAptitudeQuestions(supabase, sheet.id),
+      fetchAptitudeChaptersAndProgress(supabase, sheet.id),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...sheet,
+        problems: [],
+        aptitudeChapters,
+        aptitudeQuestions,
       },
     });
   }

@@ -118,7 +118,7 @@ export default function ExploreDSASheet({ sheetId, onClose }: ExploreDSASheetPro
                 padding: '2px 8px',
                 borderRadius: '12px'
               }}>
-                DSA {sheet?.sheet_type === 'SQL' ? '• SQL + MCQ Sheet' : sheet?.sheet_type === 'ROADMAP' ? '• Levels 1–5 Roadmap' : 'Practice Sheet'}
+                DSA {sheet?.sheet_type === 'SQL' ? '• SQL + MCQ Sheet' : sheet?.sheet_type === 'APTITUDE' ? '• Aptitude Mastery Sheet' : sheet?.sheet_type === 'ROADMAP' ? '• Levels 1–5 Roadmap' : 'Practice Sheet'}
               </span>
               {sheet?.enrollment_access && (
                 <span style={{

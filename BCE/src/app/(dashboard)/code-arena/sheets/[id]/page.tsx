@@ -5,6 +5,12 @@ import { getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
 import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
 import RoadmapSheetDetailClient from '@/features/code-arena/components/roadmap/RoadmapSheetDetailClient';
+import AptitudeSheetDetailClient from '@/features/code-arena/components/aptitude-sheet/AptitudeSheetDetailClient';
+import {
+  fetchAllAptitudeQuestions,
+  fetchAllSolvedAptitudeProgress,
+  fetchAptitudeChaptersAndProgress,
+} from '@/features/code-arena/data/aptitudeSheetTypes';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import { getSolvedStatusMap } from '@/lib/coding-platforms/solved-matcher';
 import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
@@ -117,6 +123,85 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           sheet={sheet as any}
           questions={(sqlQuestions || []) as any}
           initialProgress={(sqlProgress || []) as any}
+          totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
+          enrolledUsersList={enrolledUsersList}
+          totalSolversCount={solverMap.size}
+          leaderboardList={leaderboardList}
+          initialCertificate={existingCert || null}
+          reviewsData={sheetReviewsData as any}
+          currentUserId={user.id}
+          isInstructor={isInstructor}
+          isPublicPreview={false}
+        />
+      </Suspense>
+    );
+  }
+
+  // Dedicated rich view when this sheet is a Placement Aptitude Mastery sheet
+  if ((sheet as any).sheet_type === 'APTITUDE') {
+    const [
+      aptitudeQuestions,
+      { chapters: aptitudeChapters, progress: aptitudeProgress },
+      { data: enrollmentsData, count: enrollmentsCount },
+      allAptitudeProgress,
+      { data: existingCert },
+      sheetReviewsData,
+    ] = await Promise.all([
+      fetchAllAptitudeQuestions(supabase, sheet.id),
+      fetchAptitudeChaptersAndProgress(supabase, sheet.id, user.id),
+      serviceRoleClient
+        .from('coding_sheet_enrollments')
+        .select('user_id, enrolled_at, profiles(id, name, avatar_url)', { count: 'exact' })
+        .eq('sheet_id', sheet.id)
+        .order('enrolled_at', { ascending: false }),
+      fetchAllSolvedAptitudeProgress(serviceRoleClient, sheet.id, true),
+      supabase
+        .from('certificates')
+        .select('*, profiles(name, role)')
+        .eq('user_id', user.id)
+        .eq('sheet_id', sheet.id)
+        .maybeSingle(),
+      getSheetReviewsData(sheet.id, user.id),
+    ]);
+
+    const enrolledUsersList = (enrollmentsData || []).map((e: any) => ({
+      user_id: e.user_id,
+      enrolled_at: e.enrolled_at,
+      name: e.profiles?.name || 'Learner',
+      avatar_url: e.profiles?.avatar_url || null,
+    }));
+
+    const solverMap = new Map<string, { userId: string; name: string; avatar_url: string | null; qSet: Set<number> }>();
+    allAptitudeProgress.forEach((row: any) => {
+      if (!solverMap.has(row.user_id)) {
+        solverMap.set(row.user_id, {
+          userId: row.user_id,
+          name: row.profiles?.name || 'Aptitude Learner',
+          avatar_url: row.profiles?.avatar_url || null,
+          qSet: new Set(),
+        });
+      }
+      solverMap.get(row.user_id)!.qSet.add(row.question_number);
+    });
+
+    const leaderboardList = Array.from(solverMap.values())
+      .map((s) => ({
+        userId: s.userId,
+        name: s.name,
+        avatar_url: s.avatar_url,
+        solvedCount: s.qSet.size,
+        isCurrentUser: s.userId === user.id,
+      }))
+      .sort((a, b) => b.solvedCount - a.solvedCount)
+      .slice(0, 30);
+
+    return (
+      <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Placement Aptitude Mastery Sheet…</div>}>
+        <AptitudeSheetDetailClient
+          sheet={sheet as any}
+          chapters={aptitudeChapters}
+          questions={aptitudeQuestions}
+          initialProgress={aptitudeProgress}
           totalEnrolledCount={Math.max(enrollmentsCount || 0, leaderboardList.length)}
           enrolledUsersList={enrolledUsersList}
           totalSolversCount={solverMap.size}

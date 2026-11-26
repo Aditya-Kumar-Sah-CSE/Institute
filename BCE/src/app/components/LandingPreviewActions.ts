@@ -1,6 +1,10 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import {
+  fetchAllAptitudeQuestions,
+  fetchAllSolvedAptitudeProgress,
+} from '@/features/code-arena/data/aptitudeSheetTypes';
 
 function formatError(err: any): string {
   if (!err) return 'Unknown error';
@@ -428,6 +432,46 @@ export async function getExploreSheetDetails(sheetId: string) {
           if (!solverMap.has(uid)) {
             solverMap.set(uid, {
               name: row.profiles?.name || 'SQL Learner',
+              avatarUrl: row.profiles?.avatar_url || null,
+              qSet: new Set(),
+            });
+          }
+          solverMap.get(uid)!.qSet.add(row.question_number);
+        });
+        solvers = Array.from(solverMap.values())
+          .map((s) => ({ name: s.name, avatarUrl: s.avatarUrl, solvedCount: s.qSet.size }))
+          .sort((a, b) => b.solvedCount - a.solvedCount)
+          .slice(0, 15);
+      }
+    } else if ((sheet as any).sheet_type === 'APTITUDE') {
+      const [aptQs, aptProg] = await Promise.all([
+        fetchAllAptitudeQuestions(adminClient, sheetId),
+        fetchAllSolvedAptitudeProgress(adminClient, sheetId, true),
+      ]);
+
+      problems = aptQs.map((q) => ({
+        id: q.id,
+        title: `Q${q.question_number}. ${q.question}`,
+        difficulty: q.difficulty === 'HARD' ? 'Hard' : q.difficulty === 'MEDIUM' ? 'Medium' : 'Easy',
+        external_platform: q.category,
+        tags: [`Ch ${q.chapter_number}: ${q.chapter_title}`, q.level_label],
+        order_index: q.question_number - 1,
+      }));
+
+      difficultyStats.Total = problems.length;
+      problems.forEach((p: any) => {
+        if (p.difficulty === 'Hard') difficultyStats.Hard++;
+        else if (p.difficulty === 'Medium') difficultyStats.Medium++;
+        else difficultyStats.Easy++;
+      });
+
+      if (aptProg.length > 0) {
+        const solverMap = new Map<string, { name: string; avatarUrl: string | null; qSet: Set<number> }>();
+        aptProg.forEach((row) => {
+          const uid = row.user_id;
+          if (!solverMap.has(uid)) {
+            solverMap.set(uid, {
+              name: row.profiles?.name || 'Aptitude Learner',
               avatarUrl: row.profiles?.avatar_url || null,
               qSet: new Set(),
             });

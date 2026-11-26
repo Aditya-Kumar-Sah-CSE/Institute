@@ -5,6 +5,11 @@ import { createClient } from '@supabase/supabase-js';
 import PublicSheetViewer from './PublicSheetViewer';
 import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
 import RoadmapSheetDetailClient from '@/features/code-arena/components/roadmap/RoadmapSheetDetailClient';
+import AptitudeSheetDetailClient from '@/features/code-arena/components/aptitude-sheet/AptitudeSheetDetailClient';
+import {
+  fetchAllAptitudeQuestions,
+  fetchAptitudeChaptersAndProgress,
+} from '@/features/code-arena/data/aptitudeSheetTypes';
 import { getSheetReviewsData } from '@/features/code-arena/actions/sheet-reviews';
 
 function getSupabaseClient() {
@@ -37,6 +42,8 @@ async function getPublicSheetData(slugOrId: string) {
   let sqlQuestions: any[] = [];
   let roadmapLevels: any[] = [];
   let roadmapProblems: any[] = [];
+  let aptitudeChapters: any[] = [];
+  let aptitudeQuestions: any[] = [];
 
   if ((sheet as any).sheet_type === 'SQL') {
     const { data: sqlData } = await supabase
@@ -45,6 +52,13 @@ async function getPublicSheetData(slugOrId: string) {
       .eq('sheet_id', sheet.id)
       .order('question_number', { ascending: true });
     sqlQuestions = sqlData || [];
+  } else if ((sheet as any).sheet_type === 'APTITUDE') {
+    const [aptQuestions, { chapters }] = await Promise.all([
+      fetchAllAptitudeQuestions(supabase, sheet.id),
+      fetchAptitudeChaptersAndProgress(supabase, sheet.id),
+    ]);
+    aptitudeChapters = chapters;
+    aptitudeQuestions = aptQuestions;
   } else if ((sheet as any).sheet_type === 'ROADMAP') {
     const [{ data: lvlData }, { data: probData }] = await Promise.all([
       supabase
@@ -104,6 +118,8 @@ async function getPublicSheetData(slugOrId: string) {
     sqlQuestions,
     roadmapLevels,
     roadmapProblems,
+    aptitudeChapters,
+    aptitudeQuestions,
   };
 }
 
@@ -130,6 +146,8 @@ export async function generateMetadata({
   const problemCount =
     sheet.sheet_type === 'SQL'
       ? sheet.sqlQuestions.length
+      : sheet.sheet_type === 'APTITUDE'
+      ? sheet.aptitudeQuestions.length
       : sheet.sheet_type === 'ROADMAP'
       ? sheet.roadmapProblems.length
       : sheet.problems.length;
@@ -185,6 +203,22 @@ export default async function PublicSheetPage({
         <SqlSheetDetailClient
           sheet={sheet}
           questions={sheet.sqlQuestions}
+          initialProgress={[]}
+          reviewsData={reviewsData}
+          isPublicPreview={true}
+        />
+      </div>
+    );
+  }
+
+  if (sheet.sheet_type === 'APTITUDE') {
+    const reviewsData = await getSheetReviewsData(sheet.id);
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
+        <AptitudeSheetDetailClient
+          sheet={sheet}
+          chapters={sheet.aptitudeChapters}
+          questions={sheet.aptitudeQuestions}
           initialProgress={[]}
           reviewsData={reviewsData}
           isPublicPreview={true}

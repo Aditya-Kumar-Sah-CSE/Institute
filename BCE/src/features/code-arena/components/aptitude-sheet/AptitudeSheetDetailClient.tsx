@@ -1,0 +1,1138 @@
+'use client';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Award,
+  BookOpen,
+  Bookmark,
+  Calculator,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  Clock,
+  Flame,
+  Layers,
+  Lock,
+  Play,
+  Search,
+  Share2,
+  Sparkles,
+  Star,
+  Trophy,
+  Users,
+  X,
+} from 'lucide-react';
+import Modal from '@/components/ui/Modal';
+import UserAvatar from '@/components/shared/UserAvatar';
+import CertificateRenderer from '../CertificateRenderer';
+import SheetReviewsSection from '../SheetReviewsSection';
+import AptitudeMcqCard from './AptitudeMcqCard';
+import {
+  AptitudeChaptersHandbookView,
+  AptitudeMockTestView,
+} from './AptitudeMockAndChaptersView';
+import type {
+  AptitudeCategory,
+  AptitudeChapter,
+  AptitudeQuestion,
+  AptitudeProgress,
+} from '@/features/code-arena/data/aptitudeSheetTypes';
+import '@/features/code-arena/components/CodeArena.css';
+import '../sql-sheet/SqlSheet.css';
+import './AptitudeSheet.css';
+
+interface LeaderboardRow {
+  userId: string;
+  name: string;
+  avatar_url: string | null;
+  solvedCount: number;
+  isCurrentUser?: boolean;
+}
+
+interface EnrolledUserRow {
+  user_id: string;
+  enrolled_at: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+interface AptitudeSheetDetailClientProps {
+  sheet: {
+    id: string;
+    slug?: string;
+    title: string;
+    description: string | null;
+    created_by: string;
+    created_at: string;
+    enrollment_access?: string;
+    sheet_type?: string;
+    metadata?: any;
+  };
+  chapters: AptitudeChapter[];
+  questions: AptitudeQuestion[];
+  initialProgress: AptitudeProgress[];
+  totalEnrolledCount?: number;
+  enrolledUsersList?: EnrolledUserRow[];
+  totalSolversCount?: number;
+  leaderboardList?: LeaderboardRow[];
+  initialCertificate?: any;
+  reviewsData?: {
+    reviews: any[];
+    userReview: any | null;
+    stats: {
+      averageRating: number;
+      totalReviews: number;
+      breakdown: { 5: number; 4: number; 3: number; 2: number; 1: number };
+    };
+  };
+  currentUserId?: string;
+  isInstructor?: boolean;
+  isPublicPreview?: boolean;
+}
+
+type MainTab = 'arena' | 'chapters' | 'mock';
+const PAGE_SIZE = 20;
+
+const CATEGORIES: AptitudeCategory[] = [
+  'Quantitative Aptitude',
+  'Logical Reasoning',
+  'Verbal Ability',
+];
+
+export default function AptitudeSheetDetailClient({
+  sheet,
+  chapters,
+  questions,
+  initialProgress,
+  totalEnrolledCount = 0,
+  enrolledUsersList = [],
+  totalSolversCount = 0,
+  leaderboardList = [],
+  initialCertificate = null,
+  reviewsData,
+  currentUserId,
+  isInstructor = false,
+  isPublicPreview = false,
+}: AptitudeSheetDetailClientProps) {
+  const router = useRouter();
+  const storageKey = `aptitude_last_q_${sheet.id}`;
+
+  const [progressMap, setProgressMap] = useState<Record<number, AptitudeProgress>>(() => {
+    const map: Record<number, AptitudeProgress> = {};
+    initialProgress.forEach((p) => {
+      map[p.question_number] = p;
+    });
+    return map;
+  });
+
+  const [activeTab, setActiveTab] = useState<MainTab>('arena');
+  const [activeQNum, setActiveQNum] = useState<number | null>(null);
+  const [lastPracticedQ, setLastPracticedQ] = useState<number | null>(null);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | AptitudeCategory>('ALL');
+  const [chapterFilter, setChapterFilter] = useState<number | 'ALL'>('ALL');
+  const [difficultyFilter, setDifficultyFilter] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'SOLVED' | 'WRONG' | 'UNSOLVED' | 'BOOKMARKED'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [jumpInput, setJumpInput] = useState('');
+
+  // Modals
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+  const [showEnrolledModal, setShowEnrolledModal] = useState(false);
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [certificate, setCertificate] = useState<any>(initialCertificate);
+  const [claimingCert, setClaimingCert] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= questions.length) {
+          setLastPracticedQ(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [storageKey, questions.length]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, chapterFilter, difficultyFilter, statusFilter]);
+
+  const chapterByNum = useMemo(() => {
+    const map: Record<number, AptitudeChapter> = {};
+    chapters.forEach((ch) => {
+      map[ch.chapter_number] = ch;
+    });
+    return map;
+  }, [chapters]);
+
+  const visibleChapterOptions = useMemo(() => {
+    if (categoryFilter === 'ALL') return chapters;
+    return chapters.filter((ch) => ch.category === categoryFilter);
+  }, [chapters, categoryFilter]);
+
+  const stats = useMemo(() => {
+    let solvedTotal = 0;
+    let wrongCount = 0;
+    let bookmarkedCount = 0;
+    let totalXpEarned = 0;
+
+    const byCat: Record<AptitudeCategory, { total: number; solved: number }> = {
+      'Quantitative Aptitude': { total: 0, solved: 0 },
+      'Logical Reasoning': { total: 0, solved: 0 },
+      'Verbal Ability': { total: 0, solved: 0 },
+    };
+
+    questions.forEach((q) => {
+      if (byCat[q.category]) {
+        byCat[q.category].total++;
+      }
+      const p = progressMap[q.question_number];
+      if (p?.is_solved) {
+        solvedTotal++;
+        if (byCat[q.category]) byCat[q.category].solved++;
+        totalXpEarned += p.xp_awarded || 0;
+      } else if (p && Boolean(p.selected_option)) {
+        wrongCount++;
+      }
+      if (p?.is_bookmarked) bookmarkedCount++;
+    });
+
+    const attemptedCount = solvedTotal + wrongCount;
+    const accuracyPct = attemptedCount > 0 ? Math.round((solvedTotal / attemptedCount) * 100) : 0;
+    const pct = questions.length > 0 ? Math.round((solvedTotal / questions.length) * 100) : 0;
+
+    return {
+      solvedTotal,
+      wrongCount,
+      attemptedCount,
+      accuracyPct,
+      bookmarkedCount,
+      totalXpEarned,
+      pct,
+      byCat,
+    };
+  }, [questions, progressMap]);
+
+  const filteredQuestions = useMemo(() => {
+    const qText = searchQuery.trim().toLowerCase();
+    return questions.filter((item) => {
+      if (categoryFilter !== 'ALL' && item.category !== categoryFilter) return false;
+      if (chapterFilter !== 'ALL' && item.chapter_number !== chapterFilter) return false;
+      if (difficultyFilter !== 'ALL' && item.difficulty !== difficultyFilter) return false;
+
+      const prog = progressMap[item.question_number];
+      if (statusFilter === 'SOLVED' && !prog?.is_solved) return false;
+      if (statusFilter === 'WRONG' && (prog?.is_solved || !prog?.selected_option)) return false;
+      if (statusFilter === 'UNSOLVED' && prog?.is_solved) return false;
+      if (statusFilter === 'BOOKMARKED' && !prog?.is_bookmarked) return false;
+
+      if (qText) {
+        const cleanNumQuery = qText.replace(/^q/i, '');
+        const numMatch = /^\d+$/.test(cleanNumQuery) && String(item.question_number) === cleanNumQuery;
+        const textMatch =
+          item.question.toLowerCase().includes(qText) ||
+          item.chapter_title.toLowerCase().includes(qText) ||
+          item.category.toLowerCase().includes(qText) ||
+          (item.explanation && item.explanation.toLowerCase().includes(qText));
+        if (!numMatch && !textMatch) return false;
+      }
+      return true;
+    });
+  }, [
+    questions,
+    progressMap,
+    categoryFilter,
+    chapterFilter,
+    difficultyFilter,
+    statusFilter,
+    searchQuery,
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedQuestions = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredQuestions.slice(start, start + PAGE_SIZE);
+  }, [filteredQuestions, safePage]);
+
+  const openQuestion = (qNum: number) => {
+    setActiveQNum(qNum);
+    setActiveTab('arena');
+    setLastPracticedQ(qNum);
+    try {
+      localStorage.setItem(storageKey, String(qNum));
+    } catch {
+      // ignore
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveProgress = async (payload: {
+    questionNumber: number;
+    isSolved: boolean;
+    selectedOption: string;
+  }): Promise<{ xpAwarded?: number } | void> => {
+    setProgressMap((prev) => {
+      const existing = prev[payload.questionNumber];
+      return {
+        ...prev,
+        [payload.questionNumber]: {
+          question_number: payload.questionNumber,
+          is_solved: existing?.is_solved ? true : payload.isSolved,
+          is_bookmarked: Boolean(existing?.is_bookmarked),
+          selected_option: payload.selectedOption,
+          attempts: (existing?.attempts || 0) + 1,
+          xp_awarded: existing?.xp_awarded || 0,
+        },
+      };
+    });
+
+    if (isPublicPreview || !currentUserId) return;
+
+    try {
+      const res = await fetch(`/api/coding/sheets/${sheet.id}/aptitude-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProgressMap((prev) => ({
+          ...prev,
+          [payload.questionNumber]: json.data,
+        }));
+        if (json.xpAwarded && json.xpAwarded > 0) {
+          router.refresh();
+        }
+        return { xpAwarded: json.xpAwarded || 0 };
+      }
+    } catch (err) {
+      console.error('Failed to persist aptitude progress:', err);
+    }
+  };
+
+  const handleToggleBookmark = async (questionNumber: number, nextState: boolean) => {
+    setProgressMap((prev) => {
+      const existing = prev[questionNumber];
+      return {
+        ...prev,
+        [questionNumber]: {
+          question_number: questionNumber,
+          is_solved: existing?.is_solved ?? false,
+          is_bookmarked: nextState,
+          selected_option: existing?.selected_option ?? null,
+          attempts: existing?.attempts ?? 0,
+          xp_awarded: existing?.xp_awarded ?? 0,
+        },
+      };
+    });
+
+    if (isPublicPreview || !currentUserId) return;
+
+    try {
+      await fetch(`/api/coding/sheets/${sheet.id}/aptitude-progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionNumber, isBookmarked: nextState }),
+      });
+    } catch (err) {
+      console.error('Bookmark error:', err);
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    const sharePath = `/share/sheet/${sheet.slug || sheet.id}`;
+    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${sharePath}` : sharePath;
+    navigator.clipboard.writeText(fullUrl);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2000);
+  };
+
+  const handleClaimCertificate = async () => {
+    if (certificate) {
+      setShowCertModal(true);
+      return;
+    }
+    if (claimingCert) return;
+    setClaimingCert(true);
+    try {
+      const res = await fetch(`/api/coding/sheets/${sheet.id}/certificate`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setCertificate(json.data);
+        setShowCertModal(true);
+      } else {
+        alert(json.error || `Complete all ${questions.length} aptitude questions to unlock the certificate.`);
+      }
+    } catch {
+      alert('Failed to claim certificate.');
+    } finally {
+      setClaimingCert(false);
+    }
+  };
+
+  const activeQuestionObj = useMemo(
+    () => (activeQNum !== null ? questions.find((q) => q.question_number === activeQNum) || null : null),
+    [activeQNum, questions]
+  );
+
+  const navList = filteredQuestions.length > 0 ? filteredQuestions : questions;
+  const activeIdxInNav = activeQuestionObj
+    ? navList.findIndex((q) => q.question_number === activeQuestionObj.question_number)
+    : -1;
+
+  const handleJumpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const target = parseInt(jumpInput.trim(), 10);
+    if (!Number.isNaN(target) && target >= 1 && target <= questions.length) {
+      openQuestion(target);
+      setJumpInput('');
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setCategoryFilter('ALL');
+    setChapterFilter('ALL');
+    setDifficultyFilter('ALL');
+    setStatusFilter('ALL');
+  };
+
+  return (
+    <div className="container code-arena-container sql-sheet-shell">
+      {/* Top Header */}
+      <div className="sql-top-bar">
+        <div className="sql-top-left">
+          <Link href={isPublicPreview ? '/' : '/code-arena/sheets'} className="sql-back-link">
+            <ArrowLeft size={16} />
+            {isPublicPreview ? 'Back to Home' : 'Back to Practice Sheets'}
+          </Link>
+
+          <div className="sql-title-row">
+            <h1 className="sql-sheet-h1">{sheet.title}</h1>
+            <span className="sql-mastery-badge">
+              <Calculator size={13} /> PLACEMENT APTITUDE · {chapters.length} CHAPTERS
+            </span>
+          </div>
+
+          {sheet.description && <p className="sql-sheet-desc">{sheet.description}</p>}
+        </div>
+
+        <div className="sql-top-actions">
+          <button type="button" onClick={handleCopyShareLink} className="sql-btn sql-btn-secondary">
+            {copiedShare ? <Check size={15} /> : <Share2 size={15} />}
+            {copiedShare ? 'Link Copied' : 'Share Sheet'}
+          </button>
+
+          {!isPublicPreview && questions.length > 0 && stats.solvedTotal >= questions.length && (
+            <button type="button" onClick={handleClaimCertificate} className="sql-btn sql-btn-emerald">
+              <Award size={15} />
+              {certificate ? 'View Certificate' : claimingCert ? 'Issuing...' : 'Claim Certificate'}
+            </button>
+          )}
+
+          {isPublicPreview && (
+            <Link href="/login" className="sql-btn sql-btn-primary" style={{ textDecoration: 'none' }}>
+              <Lock size={14} /> Login to Save Progress
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Hero Progress + Community Stats */}
+      <div className="sql-hero-grid">
+        <div className="sql-glass-panel">
+          <div className="sql-progress-top">
+            <span className="sql-progress-title">
+              <Flame size={17} style={{ color: '#f59e0b' }} />
+              Aptitude Mastery Progress ({stats.solvedTotal} / {questions.length})
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {stats.totalXpEarned > 0 && (
+                <span className="sql-xp-burst" title="Total XP earned on this Aptitude sheet">
+                  <Sparkles size={12} /> +{stats.totalXpEarned} XP
+                </span>
+              )}
+              <span className="sql-progress-pct">{stats.pct}%</span>
+            </div>
+          </div>
+
+          <div className="sql-progress-track">
+            <div className="sql-progress-fill" style={{ width: `${stats.pct}%` }} />
+          </div>
+
+          <div className="sql-breakdown-pills">
+            <div className="sql-mini-stat">
+              <span className="sql-mini-stat-label">Total Correct</span>
+              <span className="sql-mini-stat-val sql-color-correct">
+                {stats.solvedTotal}{' '}
+                <span className="sql-stat-sub">
+                  {stats.attemptedCount > 0 ? `(${stats.accuracyPct}% acc)` : `/ ${questions.length}`}
+                </span>
+              </span>
+            </div>
+
+            {CATEGORIES.map((cat) => {
+              const catStats = stats.byCat[cat];
+              const shortLabel =
+                cat === 'Quantitative Aptitude'
+                  ? 'Quant (19 Ch)'
+                  : cat === 'Logical Reasoning'
+                  ? 'Logical (7 Ch)'
+                  : 'Verbal (3 Ch)';
+              return (
+                <div
+                  key={cat}
+                  className="sql-mini-stat clickable"
+                  onClick={() => {
+                    setActiveQNum(null);
+                    setActiveTab('arena');
+                    setCategoryFilter(cat);
+                    setChapterFilter('ALL');
+                  }}
+                  title={`Filter ${cat} (${catStats.total} Qs)`}
+                >
+                  <span className="sql-mini-stat-label">{shortLabel}</span>
+                  <span className="sql-mini-stat-val sql-color-mcq">
+                    {catStats.solved} <span className="sql-stat-sub">/ {catStats.total}</span>
+                  </span>
+                </div>
+              );
+            })}
+
+            <div
+              className="sql-mini-stat clickable"
+              onClick={() => {
+                setActiveQNum(null);
+                setActiveTab('arena');
+                setStatusFilter(stats.wrongCount > 0 ? 'WRONG' : 'BOOKMARKED');
+              }}
+              title="Click to filter Wrong answers or Bookmarked questions"
+            >
+              <span className="sql-mini-stat-label">Wrong / Saved</span>
+              <span className="sql-mini-stat-val">
+                <span className="sql-color-wrong">{stats.wrongCount}</span>
+                <span className="sql-stat-sub"> wrong • </span>
+                <span className="sql-color-bookmark">{stats.bookmarkedCount}</span>
+                <span className="sql-stat-sub"> saved</span>
+              </span>
+            </div>
+          </div>
+
+          {lastPracticedQ && activeQNum === null && (
+            <div className="sql-resume-row">
+              <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                Resume where you left off: <strong style={{ color: 'var(--text-primary)' }}>Question #{lastPracticedQ}</strong>
+              </span>
+              <button type="button" onClick={() => openQuestion(lastPracticedQ)} className="sql-btn sql-btn-emerald">
+                <Play size={14} fill="currentColor" /> Continue Q{lastPracticedQ}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Community Stats Card */}
+        <div className="sql-glass-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+          <div className="sheet-stats-container">
+            <div
+              className="sheet-stat-box clickable"
+              onClick={() => setShowLeaderboardModal(true)}
+              title="View Top Aptitude Solvers"
+            >
+              <Trophy size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{totalSolversCount}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Active Solvers</div>
+              </div>
+            </div>
+
+            <div
+              className="sheet-stat-box clickable"
+              onClick={() => setShowEnrolledModal(true)}
+              title="View Enrolled Learners"
+            >
+              <Users size={20} style={{ color: '#0284c7', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{totalEnrolledCount}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Enrolled</div>
+              </div>
+            </div>
+
+            <div className="sheet-stat-box">
+              <Star size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {reviewsData?.stats?.averageRating ? `${reviewsData.stats.averageRating} / 5` : 'New'}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  {reviewsData?.stats?.totalReviews || 0} Reviews
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="sheet-stat-box clickable"
+              onClick={() => {
+                setActiveQNum(null);
+                setActiveTab('chapters');
+              }}
+              title="Open Theory, Short Tricks & Solved Examples across all 29 chapters"
+            >
+              <BookOpen size={20} style={{ color: '#7c3aed', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>{chapters.length} Chapters</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Theory &amp; Tricks</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span>Basic • Medium • Advance MCQs + Solutions</span>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveQNum(null);
+                setActiveTab('mock');
+              }}
+              className="sql-mini-btn"
+              style={{ color: 'var(--accent-primary, #0284c7)', borderColor: 'rgba(14, 165, 233, 0.35)' }}
+            >
+              <Clock size={12} /> 1m/Q Timed Mock
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Workspace Tabs */}
+      <div className="sql-main-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'arena'}
+          onClick={() => setActiveTab('arena')}
+          className={`sql-main-tab ${activeTab === 'arena' ? 'active' : ''}`}
+        >
+          <Layers size={16} /> Practice Arena ({questions.length})
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'chapters'}
+          onClick={() => {
+            setActiveQNum(null);
+            setActiveTab('chapters');
+          }}
+          className={`sql-main-tab ${activeTab === 'chapters' ? 'active' : ''}`}
+        >
+          <BookOpen size={16} /> Chapters, Theory &amp; Tricks ({chapters.length})
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'mock'}
+          onClick={() => {
+            setActiveQNum(null);
+            setActiveTab('mock');
+          }}
+          className={`sql-main-tab ${activeTab === 'mock' ? 'active' : ''}`}
+        >
+          <Clock size={16} /> Timed Placement Mock (1m/Q)
+        </button>
+      </div>
+
+      {/* TAB 1: PRACTICE ARENA */}
+      {activeTab === 'arena' && (
+        <>
+          {activeQuestionObj ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="sql-workbench-nav">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveQNum(null)}
+                    className="sql-btn sql-btn-secondary"
+                  >
+                    <ArrowLeft size={15} /> All Questions
+                  </button>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    Q{activeQuestionObj.question_number} of {questions.length}
+                  </span>
+                </div>
+
+                <form onSubmit={handleJumpSubmit} className="sql-jump-form">
+                  <input
+                    type="number"
+                    min={1}
+                    max={questions.length}
+                    value={jumpInput}
+                    onChange={(e) => setJumpInput(e.target.value)}
+                    placeholder={`1-${questions.length}`}
+                    className="sql-jump-input"
+                  />
+                  <button type="submit" className="sql-mini-btn">
+                    Go
+                  </button>
+                </form>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    disabled={activeIdxInNav <= 0}
+                    onClick={() => openQuestion(navList[activeIdxInNav - 1].question_number)}
+                    className="sql-btn sql-btn-secondary"
+                  >
+                    <ChevronLeft size={15} /> Prev
+                  </button>
+                  <button
+                    type="button"
+                    disabled={activeIdxInNav === -1 || activeIdxInNav >= navList.length - 1}
+                    onClick={() => openQuestion(navList[activeIdxInNav + 1].question_number)}
+                    className="sql-btn sql-btn-primary"
+                  >
+                    Next <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+
+              <AptitudeMcqCard
+                question={activeQuestionObj}
+                chapter={chapterByNum[activeQuestionObj.chapter_number]}
+                progress={progressMap[activeQuestionObj.question_number]}
+                isPublicPreview={isPublicPreview}
+                onSubmitAnswer={handleSaveProgress}
+                onToggleBookmark={handleToggleBookmark}
+              />
+
+              {/* Bottom Quick Prev / Next Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <button
+                  type="button"
+                  disabled={activeIdxInNav <= 0}
+                  onClick={() => openQuestion(navList[activeIdxInNav - 1].question_number)}
+                  className="sql-btn sql-btn-secondary"
+                >
+                  <ChevronLeft size={15} /> Previous Question
+                </button>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Filter Position: {activeIdxInNav + 1} / {navList.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={activeIdxInNav === -1 || activeIdxInNav >= navList.length - 1}
+                  onClick={() => openQuestion(navList[activeIdxInNav + 1].question_number)}
+                  className="sql-btn sql-btn-primary"
+                >
+                  Next Question <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Filter Controls */}
+              <div className="sql-filters-card">
+                <div className="sql-filter-top-row">
+                  <div className="sql-search-wrap">
+                    <Search size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={`Search ${questions.length} aptitude questions by keyword, chapter, or Q# (e.g. 425)...`}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={chapterFilter === 'ALL' ? 'ALL' : String(chapterFilter)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setChapterFilter(val === 'ALL' ? 'ALL' : Number(val));
+                    }}
+                    className="sql-select"
+                    aria-label="Filter by Chapter"
+                  >
+                    <option value="ALL">
+                      {categoryFilter === 'ALL'
+                        ? `All ${chapters.length} Chapters (${questions.length} Questions)`
+                        : `All ${categoryFilter} Chapters`}
+                    </option>
+                    {visibleChapterOptions.map((ch) => (
+                      <option key={ch.chapter_number} value={ch.chapter_number}>
+                        Ch {ch.chapter_number}: {ch.title} (Q{ch.start_q}–Q{ch.end_q} · {ch.question_count})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sql-pill-rows">
+                  <div className="sql-pill-group">
+                    {(['ALL', ...CATEGORIES] as const).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(cat);
+                          if (
+                            cat !== 'ALL' &&
+                            chapterFilter !== 'ALL' &&
+                            chapterByNum[chapterFilter]?.category !== cat
+                          ) {
+                            setChapterFilter('ALL');
+                          }
+                        }}
+                        className={`sql-filter-pill ${categoryFilter === cat ? 'active' : ''}`}
+                      >
+                        {cat === 'ALL'
+                          ? `All Sections (${questions.length})`
+                          : cat === 'Quantitative Aptitude'
+                          ? `Quant (${stats.byCat[cat].total})`
+                          : cat === 'Logical Reasoning'
+                          ? `Logical (${stats.byCat[cat].total})`
+                          : `Verbal (${stats.byCat[cat].total})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="sql-pill-group">
+                    {(['ALL', 'SOLVED', 'WRONG', 'UNSOLVED', 'BOOKMARKED'] as const).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setStatusFilter(st)}
+                        className={`sql-filter-pill ${statusFilter === st ? 'active' : ''}`}
+                      >
+                        {st === 'ALL'
+                          ? 'Any Status'
+                          : st === 'SOLVED'
+                          ? `Correct (${stats.solvedTotal})`
+                          : st === 'WRONG'
+                          ? `Wrong (${stats.wrongCount})`
+                          : st === 'UNSOLVED'
+                          ? 'Pending'
+                          : `Saved (${stats.bookmarkedCount})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="sql-pill-group">
+                    {(['ALL', 'EASY', 'MEDIUM', 'HARD'] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setDifficultyFilter(d)}
+                        className={`sql-filter-pill ${difficultyFilter === d ? 'active' : ''}`}
+                      >
+                        {d === 'ALL' ? 'All Levels' : d === 'EASY' ? 'Basic' : d === 'MEDIUM' ? 'Medium' : 'Advance'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Count & Page Info */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', padding: '0 4px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Showing <strong style={{ color: 'var(--text-primary)' }}>{filteredQuestions.length}</strong> question(s)
+                </span>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                  Page {safePage} of {totalPages}
+                </span>
+              </div>
+
+              {/* Questions Rows */}
+              {paginatedQuestions.length === 0 ? (
+                <div className="sql-glass-panel" style={{ textAlign: 'center', padding: '44px 20px' }}>
+                  <BookOpen size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
+                  <h3 style={{ color: 'var(--text-primary)', margin: '0 0 6px' }}>No questions match these filters</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', marginBottom: '14px' }}>
+                    Try resetting your search, chapter, or status filter.
+                  </p>
+                  <button type="button" onClick={resetFilters} className="sql-btn sql-btn-secondary">
+                    Reset Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="practice-rows-list">
+                  {paginatedQuestions.map((q) => {
+                    const prog = progressMap[q.question_number];
+                    const solved = Boolean(prog?.is_solved);
+                    const bookmarked = Boolean(prog?.is_bookmarked);
+                    const diffClass =
+                      q.difficulty === 'HARD'
+                        ? 'difficulty-HARD'
+                        : q.difficulty === 'MEDIUM'
+                        ? 'difficulty-MEDIUM'
+                        : 'difficulty-EASY';
+                    const shortCat =
+                      q.category === 'Quantitative Aptitude'
+                        ? 'Quant'
+                        : q.category === 'Logical Reasoning'
+                        ? 'Logical'
+                        : 'Verbal';
+
+                    return (
+                      <div
+                        key={q.question_number}
+                        className="practice-row-item"
+                        onClick={() => openQuestion(q.question_number)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="row-item-left">
+                          {solved ? (
+                            <CheckCircle2 size={20} style={{ color: '#34d399', flexShrink: 0 }} />
+                          ) : (
+                            <Circle size={20} style={{ color: '#475569', flexShrink: 0 }} />
+                          )}
+
+                          <div className="row-problem-meta">
+                            <div className="row-problem-title">
+                              <span className="sql-color-query" style={{ marginRight: '8px', fontWeight: 800 }}>
+                                Q{q.question_number}.
+                              </span>
+                              {q.question}
+                            </div>
+                            <div className="row-tags-group">
+                              <span className="sql-type-pill sql-type-mcq">{shortCat}</span>
+                              <span className="tag-pill">
+                                Ch {q.chapter_number}: {q.chapter_title}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="row-item-right">
+                          <span className={`difficulty-badge-styled ${diffClass}`}>
+                            {q.level_label || (q.difficulty === 'HARD' ? 'Advance' : q.difficulty === 'MEDIUM' ? 'Medium' : 'Basic')}
+                          </span>
+
+                          {!isPublicPreview && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleBookmark(q.question_number, !bookmarked);
+                              }}
+                              className={`sql-icon-toggle ${bookmarked ? 'active' : ''}`}
+                              style={{ width: '32px', height: '32px' }}
+                              title={bookmarked ? 'Remove Bookmark' : 'Save Bookmark'}
+                            >
+                              <Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'} />
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openQuestion(q.question_number);
+                            }}
+                            className="sql-btn sql-btn-secondary"
+                            style={{ padding: '6px 12px', minHeight: '34px', fontSize: '12px' }}
+                          >
+                            {solved ? 'Review' : 'Solve'}
+                            <ArrowRight size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="sql-pagination-bar">
+                  <button
+                    type="button"
+                    disabled={safePage <= 1}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(1, p - 1));
+                      window.scrollTo({ top: 200, behavior: 'smooth' });
+                    }}
+                    className="sql-btn sql-btn-secondary"
+                  >
+                    <ChevronLeft size={15} /> Previous
+                  </button>
+
+                  <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 700 }}>
+                    Page {safePage} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 200, behavior: 'smooth' });
+                    }}
+                    className="sql-btn sql-btn-secondary"
+                  >
+                    Next <ChevronRight size={15} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* TAB 2: CHAPTERS, THEORY & SHORT TRICKS */}
+      {activeTab === 'chapters' && (
+        <AptitudeChaptersHandbookView
+          chapters={chapters}
+          questions={questions}
+          progressMap={progressMap}
+          onPracticeChapter={(chapterNum, levelFilter = 'ALL') => {
+            setCategoryFilter('ALL');
+            setChapterFilter(chapterNum);
+            setDifficultyFilter(levelFilter);
+            setStatusFilter('ALL');
+            setSearchQuery('');
+            setActiveQNum(null);
+            setActiveTab('arena');
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+          }}
+        />
+      )}
+
+      {/* TAB 3: TIMED PLACEMENT MOCK TEST */}
+      {activeTab === 'mock' && (
+        <AptitudeMockTestView
+          chapters={chapters}
+          questions={questions}
+          progressMap={progressMap}
+          isPublicPreview={isPublicPreview}
+          onSubmitMcq={handleSaveProgress}
+        />
+      )}
+
+      {/* Reviews Section */}
+      {!isPublicPreview && reviewsData && (
+        <div style={{ marginTop: '12px' }}>
+          <SheetReviewsSection
+            sheetId={sheet.id}
+            currentUserId={currentUserId}
+            isStaff={isInstructor}
+            reviews={reviewsData.reviews}
+            userReview={reviewsData.userReview}
+            stats={reviewsData.stats}
+          />
+        </div>
+      )}
+
+      {/* Leaderboard Modal */}
+      <Modal
+        isOpen={showLeaderboardModal}
+        onClose={() => setShowLeaderboardModal(false)}
+        title="Placement Aptitude Leaderboard"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto' }}>
+          {leaderboardList.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
+              Be the first to solve questions on this Aptitude sheet!
+            </p>
+          ) : (
+            leaderboardList.map((row, idx) => (
+              <div
+                key={row.userId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: row.isCurrentUser ? 'rgba(6, 182, 212, 0.12)' : 'var(--bg-secondary)',
+                  border: row.isCurrentUser ? '1px solid rgba(6, 182, 212, 0.35)' : '1px solid var(--border-default)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: 800, color: idx < 3 ? '#f59e0b' : 'var(--text-secondary)', width: '24px' }}>
+                    #{idx + 1}
+                  </span>
+                  <UserAvatar url={row.avatar_url} name={row.name} size={32} />
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</span>
+                </div>
+                <span className="sql-color-query" style={{ fontSize: '13px', fontWeight: 800 }}>
+                  {row.solvedCount} / {questions.length}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
+
+      {/* Enrolled Users Modal */}
+      <Modal
+        isOpen={showEnrolledModal}
+        onClose={() => setShowEnrolledModal(false)}
+        title={`Enrolled Learners (${totalEnrolledCount})`}
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto' }}>
+          {enrolledUsersList.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', textAlign: 'center', padding: '20px 0' }}>
+              Public sheet — anyone in Code Arena can practice directly!
+            </p>
+          ) : (
+            enrolledUsersList.map((u) => (
+              <div
+                key={u.user_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <UserAvatar url={u.avatar_url} name={u.name} size={32} />
+                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
+
+      {/* Certificate Modal */}
+      {certificate && (
+        <Modal
+          isOpen={showCertModal}
+          onClose={() => setShowCertModal(false)}
+          title="Placement Aptitude Mastery Certificate"
+          size="lg"
+        >
+          <CertificateRenderer cert={certificate} canEditSettings={false} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+

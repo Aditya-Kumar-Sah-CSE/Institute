@@ -61,6 +61,8 @@ export async function GET(
     let sqlQuestions: any[] = [];
     let roadmapLevels: any[] = [];
     let roadmapProblems: any[] = [];
+    let aptitudeChapters: any[] = [];
+    let aptitudeQuestions: any[] = [];
 
     if ((sheet as any).sheet_type === 'SQL') {
       const { data: sqlData } = await supabase
@@ -69,6 +71,16 @@ export async function GET(
         .eq('sheet_id', sheet.id)
         .order('question_number', { ascending: true });
       sqlQuestions = sqlData || [];
+    } else if ((sheet as any).sheet_type === 'APTITUDE') {
+      const { fetchAllAptitudeQuestions, fetchAptitudeChaptersAndProgress } = await import(
+        '@/features/code-arena/data/aptitudeSheetTypes'
+      );
+      const [aptQs, { chapters }] = await Promise.all([
+        fetchAllAptitudeQuestions(supabase, sheet.id),
+        fetchAptitudeChaptersAndProgress(supabase, sheet.id),
+      ]);
+      aptitudeChapters = chapters;
+      aptitudeQuestions = aptQs;
     } else if ((sheet as any).sheet_type === 'ROADMAP') {
       const [{ data: lvlData }, { data: probData }] = await Promise.all([
         supabase
@@ -131,6 +143,8 @@ export async function GET(
         sqlQuestions,
         roadmapLevels,
         roadmapProblems,
+        aptitudeChapters,
+        aptitudeQuestions,
       },
     });
   } catch (err: any) {

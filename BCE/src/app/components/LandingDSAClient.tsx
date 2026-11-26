@@ -191,6 +191,8 @@ export default function LandingDSAClient({
               const problemsCount =
                 sheet.sheet_type === 'SQL'
                   ? sheet.metadata?.total_count || 530
+                  : sheet.sheet_type === 'APTITUDE'
+                  ? sheet.metadata?.total_count || 1139
                   : sheet.sheet_type === 'ROADMAP'
                   ? sheet.metadata?.total_count || 90
                   : sheet.coding_sheet_problems?.length || 0;
@@ -317,7 +319,7 @@ export default function LandingDSAClient({
                     {sheet.sheet_type === 'ROADMAP' ? `${problemsCount} / ${sheet.metadata?.planned_total_count || 520}` : problemsCount}
                   </span>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>
-                    {sheet.sheet_type === 'ROADMAP' ? 'Active Roadmap' : 'Problems'}
+                    {sheet.sheet_type === 'ROADMAP' ? 'Active Roadmap' : sheet.sheet_type === 'SQL' || sheet.sheet_type === 'APTITUDE' ? 'Questions' : 'Problems'}
                   </span>
                 </div>
 

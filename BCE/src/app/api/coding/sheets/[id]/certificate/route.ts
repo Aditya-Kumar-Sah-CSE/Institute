@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllSolvedAptitudeProgress } from '@/features/code-arena/data/aptitudeSheetTypes';
 
 export async function GET(
   request: Request,
@@ -94,6 +95,44 @@ export async function POST(
       if (allSqlProgress) {
         const solverCounts: Record<string, Set<number>> = {};
         allSqlProgress.forEach((row) => {
+          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
+          solverCounts[row.user_id].add(row.question_number);
+        });
+        const completers = Object.entries(solverCounts)
+          .filter(([, set]) => set.size >= totalProblems)
+          .map(([uid]) => uid);
+        rank = Math.max(1, completers.indexOf(user.id) + 1);
+      }
+    } else if ((sheet as any).sheet_type === 'APTITUDE') {
+      const { count: aptTotal } = await supabase
+        .from('coding_sheet_aptitude_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId);
+      totalProblems = aptTotal || 0;
+
+      if (totalProblems === 0) {
+        return NextResponse.json({ error: 'Aptitude sheet has no questions' }, { status: 400 });
+      }
+
+      const { count: userAptSolved } = await supabase
+        .from('coding_sheet_aptitude_progress')
+        .select('id', { count: 'exact', head: true })
+        .eq('sheet_id', sheetId)
+        .eq('user_id', user.id)
+        .eq('is_solved', true);
+      solvedCount = userAptSolved || 0;
+
+      if (solvedCount < totalProblems) {
+        return NextResponse.json(
+          { error: `Sheet not completed. Solved ${solvedCount}/${totalProblems} aptitude questions.` },
+          { status: 400 }
+        );
+      }
+
+      const allAptProgress = await fetchAllSolvedAptitudeProgress(supabase, sheetId, false);
+      if (allAptProgress.length > 0) {
+        const solverCounts: Record<string, Set<number>> = {};
+        allAptProgress.forEach((row) => {
           if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
           solverCounts[row.user_id].add(row.question_number);
         });
