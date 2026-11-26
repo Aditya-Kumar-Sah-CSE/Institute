@@ -2,15 +2,32 @@
    TCS SQL MASTERY SHEET STYLES (Dual-Theme: Day/Light Mode + Dark Mode + Mobile)
    ========================================================================== */
 
+.dashboard-shell:has(.sql-sheet-shell) .dashboard-content,
+.dashboard-layout:has(.sql-sheet-shell) .dashboard-content,
+.content-wrapper:has(.sql-sheet-shell) .dashboard-content {
+  padding-top: 12px !important;
+}
+
+.dashboard-shell:has(.sql-sheet-shell.is-focus-solving) .dashboard-content,
+.dashboard-layout:has(.sql-sheet-shell.is-focus-solving) .dashboard-content,
+.content-wrapper:has(.sql-sheet-shell.is-focus-solving) .dashboard-content {
+  padding-top: 6px !important;
+}
+
 .sql-sheet-shell {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding-bottom: 96px;
+  padding-bottom: 64px;
+}
+
+.sql-sheet-shell.is-focus-solving {
+  gap: 12px;
+  padding-bottom: 36px;
 }
 
 .sql-sheet-shell * {
@@ -290,19 +307,35 @@
 .sql-main-tab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   white-space: nowrap;
-  padding: 10px 16px;
-  min-height: 42px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  min-height: 38px;
+  border-radius: 10px;
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-default, #e2e8f0);
   color: var(--text-secondary, #475569);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+}
+
+.sql-focus-info-btn {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 7px 12px;
+  min-height: 36px;
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.28);
+  color: #0284c7;
+}
+
+[data-theme='dark'] .sql-focus-info-btn {
+  background: rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.28);
+  color: #22d3ee;
 }
 
 [data-theme='dark'] .sql-main-tab {

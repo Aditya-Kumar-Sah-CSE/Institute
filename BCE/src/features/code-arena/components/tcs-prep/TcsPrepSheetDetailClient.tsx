@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Circle,
   Code2,
   Flame,
@@ -149,6 +150,16 @@ export default function TcsPrepSheetDetailClient({
   const [activeTab, setActiveTab] = useState<MainTab>('arena');
   const [activeQNum, setActiveQNum] = useState<number | null>(null);
   const [lastPracticedQ, setLastPracticedQ] = useState<number | null>(null);
+  const [isMockActive, setIsMockActive] = useState(false);
+  const [isVerbalActive, setIsVerbalActive] = useState(false);
+  const [showHeaderInFocus, setShowHeaderInFocus] = useState(false);
+
+  const isSolvingFocus =
+    (activeTab === 'arena' && activeQNum !== null) ||
+    (activeTab === 'mocks' && isMockActive) ||
+    (activeTab === 'verbal' && isVerbalActive) ||
+    activeTab === 'coding';
+  const hideTopHero = isSolvingFocus && !showHeaderInFocus;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | TcsCategory>('ALL');
@@ -303,6 +314,7 @@ export default function TcsPrepSheetDetailClient({
   const openQuestion = (qNum: number) => {
     setActiveQNum(qNum);
     setActiveTab('arena');
+    setShowHeaderInFocus(false);
     setLastPracticedQ(qNum);
     try {
       localStorage.setItem(storageKey, String(qNum));
@@ -460,9 +472,11 @@ export default function TcsPrepSheetDetailClient({
   };
 
   return (
-    <div className="container code-arena-container sql-sheet-shell">
-      {/* Top Header */}
-      <div className="sql-top-bar">
+    <div className={`container code-arena-container sql-sheet-shell ${hideTopHero ? 'is-focus-solving' : ''}`}>
+      {/* Top Header & Hero (auto-hidden when user starts solving so workspace stays cleanly focused) */}
+      {!hideTopHero && (
+        <>
+          <div className="sql-top-bar">
         <div className="sql-top-left">
           <Link href={isPublicPreview ? '/' : '/code-arena/sheets'} className="sql-back-link">
             <ArrowLeft size={16} />
@@ -649,12 +663,14 @@ export default function TcsPrepSheetDetailClient({
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* 6 Main Tabs */}
       <div className="sql-main-tabs" role="tablist">
         <button
           type="button"
-          onClick={() => setActiveTab('arena')}
+          onClick={() => { setShowHeaderInFocus(false); setActiveTab('arena'); }}
           className={`sql-main-tab ${activeTab === 'arena' ? 'active' : ''}`}
         >
           <Layers size={15} /> Prep Arena ({questions.length})
@@ -662,7 +678,7 @@ export default function TcsPrepSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => { setActiveQNum(null); setActiveTab('chapters'); }}
+          onClick={() => { setShowHeaderInFocus(false); setActiveQNum(null); setActiveTab('chapters'); }}
           className={`sql-main-tab ${activeTab === 'chapters' ? 'active' : ''}`}
         >
           <BookOpen size={15} /> Syllabus ({chapters.length} Ch)
@@ -670,7 +686,7 @@ export default function TcsPrepSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => { setActiveQNum(null); setActiveTab('verbal'); }}
+          onClick={() => { setShowHeaderInFocus(false); setActiveQNum(null); setActiveTab('verbal'); }}
           className={`sql-main-tab ${activeTab === 'verbal' ? 'active' : ''}`}
         >
           <Mail size={15} /> Recall &amp; Email ({drills.filter((d) => d.drill_type !== 'CODING').length})
@@ -678,7 +694,7 @@ export default function TcsPrepSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => { setActiveQNum(null); setActiveTab('coding'); }}
+          onClick={() => { setShowHeaderInFocus(false); setActiveQNum(null); setActiveTab('coding'); }}
           className={`sql-main-tab ${activeTab === 'coding' ? 'active' : ''}`}
         >
           <Code2 size={15} /> C++ Labs ({drills.filter((d) => d.drill_type === 'CODING').length})
@@ -686,7 +702,7 @@ export default function TcsPrepSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => { setActiveQNum(null); setActiveTab('mocks'); }}
+          onClick={() => { setShowHeaderInFocus(false); setActiveQNum(null); setActiveTab('mocks'); }}
           className={`sql-main-tab ${activeTab === 'mocks' ? 'active' : ''}`}
         >
           <Trophy size={15} /> 13 Mock Papers
@@ -694,11 +710,23 @@ export default function TcsPrepSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => { setActiveQNum(null); setActiveTab('analysis'); }}
+          onClick={() => { setShowHeaderInFocus(false); setActiveQNum(null); setActiveTab('analysis'); }}
           className={`sql-main-tab ${activeTab === 'analysis' ? 'active' : ''}`}
         >
           <BarChart3 size={15} /> Deep Analysis ({mockAttempts.length})
         </button>
+
+        {isSolvingFocus && (
+          <button
+            type="button"
+            onClick={() => setShowHeaderInFocus((v) => !v)}
+            className="sql-main-tab sql-focus-info-btn"
+            title={showHeaderInFocus ? 'Collapse top header into Focus Mode' : 'Show sheet header, progress & reviews'}
+          >
+            {showHeaderInFocus ? <ChevronUp size={14} /> : <BarChart3 size={14} />}
+            <span>{showHeaderInFocus ? 'Focus View' : `${stats.pct}% · Sheet Info`}</span>
+          </button>
+        )}
       </div>
 
       {/* TAB 1: PREP PRACTICE ARENA */}
@@ -1025,6 +1053,7 @@ export default function TcsPrepSheetDetailClient({
           progressMap={progressMap}
           isPublicPreview={isPublicPreview}
           onSaveDrill={(p) => handleSaveProgress(p)}
+          onSolvingActiveChange={setIsVerbalActive}
         />
       )}
 
@@ -1052,6 +1081,7 @@ export default function TcsPrepSheetDetailClient({
           }}
           onPracticeChapter={(chNum) => jumpToChapter(chNum, 'ALL')}
           onSwitchToAnalysis={() => setActiveTab('analysis')}
+          onMockActiveChange={setIsMockActive}
         />
       )}
 

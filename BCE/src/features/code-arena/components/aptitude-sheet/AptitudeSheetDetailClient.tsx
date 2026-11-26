@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Award,
+  BarChart3,
   BookOpen,
   Bookmark,
   Calculator,
@@ -14,6 +15,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Circle,
   Clock,
   Flame,
@@ -134,6 +136,13 @@ export default function AptitudeSheetDetailClient({
   const [activeTab, setActiveTab] = useState<MainTab>('arena');
   const [activeQNum, setActiveQNum] = useState<number | null>(null);
   const [lastPracticedQ, setLastPracticedQ] = useState<number | null>(null);
+  const [isMockActive, setIsMockActive] = useState(false);
+  const [showHeaderInFocus, setShowHeaderInFocus] = useState(false);
+
+  const isSolvingFocus =
+    (activeTab === 'arena' && activeQNum !== null) ||
+    (activeTab === 'mock' && isMockActive);
+  const hideTopHero = isSolvingFocus && !showHeaderInFocus;
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -272,6 +281,7 @@ export default function AptitudeSheetDetailClient({
   const openQuestion = (qNum: number) => {
     setActiveQNum(qNum);
     setActiveTab('arena');
+    setShowHeaderInFocus(false);
     setLastPracticedQ(qNum);
     try {
       localStorage.setItem(storageKey, String(qNum));
@@ -415,9 +425,11 @@ export default function AptitudeSheetDetailClient({
   };
 
   return (
-    <div className="container code-arena-container sql-sheet-shell">
-      {/* Top Header */}
-      <div className="sql-top-bar">
+    <div className={`container code-arena-container sql-sheet-shell ${hideTopHero ? 'is-focus-solving' : ''}`}>
+      {/* Top Header & Hero (auto-hidden during solving so practice workspace sits at top) */}
+      {!hideTopHero && (
+        <>
+          <div className="sql-top-bar">
         <div className="sql-top-left">
           <Link href={isPublicPreview ? '/' : '/code-arena/sheets'} className="sql-back-link">
             <ArrowLeft size={16} />
@@ -624,6 +636,8 @@ export default function AptitudeSheetDetailClient({
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Main Workspace Tabs */}
       <div className="sql-main-tabs" role="tablist">
@@ -631,7 +645,10 @@ export default function AptitudeSheetDetailClient({
           type="button"
           role="tab"
           aria-selected={activeTab === 'arena'}
-          onClick={() => setActiveTab('arena')}
+          onClick={() => {
+            setShowHeaderInFocus(false);
+            setActiveTab('arena');
+          }}
           className={`sql-main-tab ${activeTab === 'arena' ? 'active' : ''}`}
         >
           <Layers size={16} /> Practice Arena ({questions.length})
@@ -642,6 +659,7 @@ export default function AptitudeSheetDetailClient({
           role="tab"
           aria-selected={activeTab === 'chapters'}
           onClick={() => {
+            setShowHeaderInFocus(false);
             setActiveQNum(null);
             setActiveTab('chapters');
           }}
@@ -655,6 +673,7 @@ export default function AptitudeSheetDetailClient({
           role="tab"
           aria-selected={activeTab === 'mock'}
           onClick={() => {
+            setShowHeaderInFocus(false);
             setActiveQNum(null);
             setActiveTab('mock');
           }}
@@ -662,6 +681,18 @@ export default function AptitudeSheetDetailClient({
         >
           <Clock size={16} /> Timed Placement Mock (1m/Q)
         </button>
+
+        {isSolvingFocus && (
+          <button
+            type="button"
+            onClick={() => setShowHeaderInFocus((v) => !v)}
+            className="sql-main-tab sql-focus-info-btn"
+            title={showHeaderInFocus ? 'Collapse top header into Focus Mode' : 'Show sheet header, progress & reviews'}
+          >
+            {showHeaderInFocus ? <ChevronUp size={14} /> : <BarChart3 size={14} />}
+            <span>{showHeaderInFocus ? 'Focus View' : `${stats.pct}% · Sheet Info`}</span>
+          </button>
+        )}
       </div>
 
       {/* TAB 1: PRACTICE ARENA */}
@@ -1035,6 +1066,7 @@ export default function AptitudeSheetDetailClient({
           progressMap={progressMap}
           isPublicPreview={isPublicPreview}
           onSubmitMcq={handleSaveProgress}
+          onQuizActiveChange={setIsMockActive}
         />
       )}
 

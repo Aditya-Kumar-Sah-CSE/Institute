@@ -2,15 +2,32 @@
    DSA ROADMAP SHEET STYLES (Dual-Theme: Day/Light Mode + Dark Mode + Mobile)
    ========================================================================== */
 
+.dashboard-shell:has(.rm-sheet-shell) .dashboard-content,
+.dashboard-layout:has(.rm-sheet-shell) .dashboard-content,
+.content-wrapper:has(.rm-sheet-shell) .dashboard-content {
+  padding-top: 12px !important;
+}
+
+.dashboard-shell:has(.rm-sheet-shell.is-focus-solving) .dashboard-content,
+.dashboard-layout:has(.rm-sheet-shell.is-focus-solving) .dashboard-content,
+.content-wrapper:has(.rm-sheet-shell.is-focus-solving) .dashboard-content {
+  padding-top: 6px !important;
+}
+
 .rm-sheet-shell {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding-bottom: 96px;
+  padding-bottom: 64px;
+}
+
+.rm-sheet-shell.is-focus-solving {
+  gap: 12px;
+  padding-bottom: 36px;
 }
 
 .rm-sheet-shell * {
@@ -330,6 +347,21 @@
   color: #ffffff;
   border-color: transparent;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28);
+}
+
+.rm-focus-info-btn {
+  margin-left: auto;
+  padding: 7px 12px;
+  font-size: 12px;
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.28);
+  color: #0284c7;
+}
+
+[data-theme='dark'] .rm-focus-info-btn {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.28);
+  color: #38bdf8;
 }
 
 /* Workspace Layout (Left Sidebar Directory + Right Problem Workbench) */

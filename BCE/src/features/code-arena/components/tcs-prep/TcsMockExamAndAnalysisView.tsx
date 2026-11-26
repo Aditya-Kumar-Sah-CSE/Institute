@@ -44,6 +44,7 @@ interface Props {
   onAttemptSaved: (attempt: TcsMockAttempt) => void;
   onPracticeChapter: (chapterNum: number) => void;
   onSwitchToAnalysis: () => void;
+  onMockActiveChange?: (active: boolean) => void;
 }
 
 const DEFAULT_CPP = `#include <bits/stdc++.h>
@@ -75,6 +76,7 @@ export default function TcsMockExamAndAnalysisView({
   onAttemptSaved,
   onPracticeChapter,
   onSwitchToAnalysis,
+  onMockActiveChange,
 }: Props) {
   // Paper cache so loading Paper N -> Deep Analysis works immediately without re-fetching
   const [paperCache, setPaperCache] = useState<Record<number, TcsMockPaperFull>>({});
@@ -143,6 +145,11 @@ export default function TcsMockExamAndAnalysisView({
       loadFullPaper(activeAttempt.paper_number);
     }
   }, [viewSection, activeAttempt?.paper_number]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    onMockActiveChange?.(Boolean(activePaper));
+    return () => onMockActiveChange?.(false);
+  }, [activePaper, onMockActiveChange]);
 
   const startMock = async (paperNum: number, mode: 'EXAM' | 'PRACTICE') => {
     const paper = await loadFullPaper(paperNum);

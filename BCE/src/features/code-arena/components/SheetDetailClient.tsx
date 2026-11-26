@@ -123,6 +123,7 @@ export default function SheetDetailClient({
   const [showEnrolledModal, setShowEnrolledModal] = useState(false);
   const [enrolledSearch, setEnrolledSearch] = useState('');
   const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   // 10 problems per page pagination
   const [currentProblemPage, setCurrentProblemPage] = useState(1);
@@ -425,9 +426,9 @@ export default function SheetDetailClient({
   };
 
   return (
-    <div className="code-arena-page" suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)', paddingBottom: '2rem' }}>
+    <div className="code-arena-page" suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '2rem' }}>
       {/* Header Bar */}
-      <header className="code-arena-header-compact" style={{ marginTop: '4px' }}>
+      <header className="code-arena-header-compact" style={{ marginTop: '0px' }}>
         <div className="code-arena-header-left">
           <Link
             href="/code-arena/sheets"
@@ -493,6 +494,29 @@ export default function SheetDetailClient({
             {copiedShare ? 'Copied Link!' : 'Share Link'}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setIsHeaderCollapsed((v) => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: isHeaderCollapsed ? 'rgba(6, 182, 212, 0.14)' : 'rgba(255,255,255,0.05)',
+              border: isHeaderCollapsed ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid var(--glass-border)',
+              color: isHeaderCollapsed ? 'var(--neon-cyan)' : 'var(--text-main)',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title={isHeaderCollapsed ? 'Show Sheet Overview & Stats' : 'Hide Overview Hero (Focus Problems)'}
+          >
+            <BarChart2 size={12} />
+            {isHeaderCollapsed ? `Overview (${progressPct}%)` : 'Focus List'}
+          </button>
+
           {canEdit && (
             <button
               type="button"
@@ -537,7 +561,7 @@ export default function SheetDetailClient({
       </header>
 
       {/* Creator Analytics Panel */}
-      {isCreator && (
+      {!isHeaderCollapsed && isCreator && (
         <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '16px 20px', borderRadius: 'var(--radius-md)', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Creator Analytics</div>
@@ -564,6 +588,7 @@ export default function SheetDetailClient({
       )}
 
       {/* Hero Overview */}
+      {!isHeaderCollapsed && (
       <div className="sheet-hero-overview">
         <div className="sheet-hero-left">
           <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: '0 0 6px 0' }} className="text-gradient">
@@ -861,6 +886,7 @@ export default function SheetDetailClient({
           </div>
         )}
       </div>
+      )}
 
       {/* Enrollment Gate — shown when student doesn't have access */}
       {!hasAccess && (

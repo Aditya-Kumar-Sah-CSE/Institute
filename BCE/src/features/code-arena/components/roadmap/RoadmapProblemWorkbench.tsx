@@ -74,6 +74,7 @@ export default function RoadmapProblemWorkbench({
   hasNext,
   onJumpToCode,
   onSaveProgress,
+  onStartSolving,
 }: {
   problem: RoadmapProblem;
   positionIndex: number;
@@ -96,6 +97,7 @@ export default function RoadmapProblemWorkbench({
     submittedCode?: string;
     incrementAttempts?: boolean;
   }) => Promise<void>;
+  onStartSolving?: () => void;
 }) {
   const [activeSubTab, setActiveSubTab] = useState<'solutions' | 'sandbox'>('solutions');
   const [revealSolutions, setRevealSolutions] = useState(true);
@@ -566,6 +568,7 @@ export default function RoadmapProblemWorkbench({
                     onClick={() => {
                       setCustomStdin(tc.input);
                       setActiveSubTab('sandbox');
+                      onStartSolving?.();
                     }}
                   >
                     Try in Sandbox
@@ -610,7 +613,10 @@ export default function RoadmapProblemWorkbench({
           </button>
           <button
             type="button"
-            onClick={() => setActiveSubTab('sandbox')}
+            onClick={() => {
+              setActiveSubTab('sandbox');
+              onStartSolving?.();
+            }}
             className={activeSubTab === 'sandbox' ? 'rm-btn-primary' : 'rm-btn-outline'}
           >
             <Terminal size={14} /> Live C++17 Sandbox & Judge
@@ -643,7 +649,7 @@ export default function RoadmapProblemWorkbench({
                 Pehle brute force complexity socho, phir bottleneck optimize karo — ya Live Sandbox me khud code run karo!
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '8px' }}>
-                <button type="button" onClick={() => setActiveSubTab('sandbox')} className="rm-btn-primary">
+                <button type="button" onClick={() => { setActiveSubTab('sandbox'); onStartSolving?.(); }} className="rm-btn-primary">
                   Open Live C++ Sandbox
                 </button>
                 <button type="button" onClick={() => setRevealSolutions(true)} className="rm-btn-outline">

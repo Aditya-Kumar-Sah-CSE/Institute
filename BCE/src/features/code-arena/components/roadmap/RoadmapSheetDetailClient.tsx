@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Award,
+  BarChart3,
   BookOpen,
   Bookmark,
   Check,
   CheckCircle2,
+  ChevronUp,
   Circle,
   Code2,
   Flame,
@@ -128,6 +130,11 @@ export default function RoadmapSheetDetailClient({
 
   const [activeTab, setActiveTab] = useState<'problems' | 'theory' | 'revision'>('problems');
   const [focusMode, setFocusMode] = useState(false);
+  const [solvingFocus, setSolvingFocus] = useState(false);
+  const [showHeaderInFocus, setShowHeaderInFocus] = useState(false);
+
+  const isSolvingFocus = solvingFocus || focusMode;
+  const hideTopHero = isSolvingFocus && !showHeaderInFocus;
 
   // Filters inside Problems Workspace
   const [searchQuery, setSearchQuery] = useState('');
@@ -382,6 +389,9 @@ export default function RoadmapSheetDetailClient({
       setSearchQuery('');
       setSelectedProblemCode(clean);
       setActiveTab('problems');
+      setSolvingFocus(true);
+      setShowHeaderInFocus(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     // Numeric shortcut like "45" -> L1-045
@@ -396,6 +406,9 @@ export default function RoadmapSheetDetailClient({
         setSearchQuery('');
         setSelectedProblemCode(padded);
         setActiveTab('problems');
+        setSolvingFocus(true);
+        setShowHeaderInFocus(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   };
@@ -441,9 +454,10 @@ export default function RoadmapSheetDetailClient({
   }, [activeLevelObj]);
 
   return (
-    <div className="rm-sheet-shell">
-      {/* Top Header & Actions */}
-      <div className="rm-top-bar">
+    <div className={`rm-sheet-shell ${hideTopHero ? 'is-focus-solving' : ''}`}>
+      {/* Top Header & Hero (auto-hidden when user starts solving so coding workspace stays cleanly focused) */}
+      {!hideTopHero && (
+        <div className="rm-top-bar">
         <div className="rm-top-left">
           <Link href={isPublicPreview ? '/' : '/code-arena/sheets'} className="rm-back-link">
             <ArrowLeft size={16} />
@@ -518,6 +532,7 @@ export default function RoadmapSheetDetailClient({
           )}
         </div>
       </div>
+      )}
 
       {/* Live XP / Certificate Feedback Banners */}
       {xpBanner && (
@@ -543,6 +558,7 @@ export default function RoadmapSheetDetailClient({
       )}
 
       {/* Hero KPI + 5-Level Roadmap Selector */}
+      {!hideTopHero && (
       <div className="rm-hero-grid">
         {/* Progress Panel */}
         <div className="rm-panel">
@@ -688,12 +704,13 @@ export default function RoadmapSheetDetailClient({
           )}
         </div>
       </div>
+      )}
 
       {/* Primary Section Tabs */}
       <div className="rm-tabs-nav">
         <button
           type="button"
-          onClick={() => setActiveTab('problems')}
+          onClick={() => { setShowHeaderInFocus(false); setActiveTab('problems'); }}
           className={`rm-tab-btn ${activeTab === 'problems' ? 'active' : ''}`}
         >
           <Code2 size={15} />
@@ -702,7 +719,7 @@ export default function RoadmapSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => setActiveTab('theory')}
+          onClick={() => { setShowHeaderInFocus(false); setActiveTab('theory'); }}
           className={`rm-tab-btn ${activeTab === 'theory' ? 'active' : ''}`}
         >
           <BookOpen size={15} />
@@ -711,12 +728,24 @@ export default function RoadmapSheetDetailClient({
 
         <button
           type="button"
-          onClick={() => setActiveTab('revision')}
+          onClick={() => { setShowHeaderInFocus(false); setActiveTab('revision'); }}
           className={`rm-tab-btn ${activeTab === 'revision' ? 'active' : ''}`}
         >
           <Sparkles size={15} />
           Level {selectedLevelNum} Revision & Self-Test
         </button>
+
+        {isSolvingFocus && (
+          <button
+            type="button"
+            onClick={() => setShowHeaderInFocus((v) => !v)}
+            className="rm-tab-btn rm-focus-info-btn"
+            title={showHeaderInFocus ? 'Hide top header into Focus Mode' : 'Show level switcher, progress & reviews'}
+          >
+            {showHeaderInFocus ? <ChevronUp size={14} /> : <BarChart3 size={14} />}
+            <span>{showHeaderInFocus ? 'Focus View' : `L${selectedLevelNum} · ${stats.pct}% · Sheet Info`}</span>
+          </button>
+        )}
       </div>
 
       {/* TAB 1: PROBLEMS WORKSPACE */}
@@ -826,7 +855,12 @@ export default function RoadmapSheetDetailClient({
                       <button
                         key={prob.problem_code}
                         type="button"
-                        onClick={() => setSelectedProblemCode(prob.problem_code)}
+                        onClick={() => {
+                          setSelectedProblemCode(prob.problem_code);
+                          setSolvingFocus(true);
+                          setShowHeaderInFocus(false);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className={`rm-problem-list-item ${isActive ? 'active' : ''}`}
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
@@ -866,21 +900,38 @@ export default function RoadmapSheetDetailClient({
               progress={progressMap[currentProblem.problem_code]}
               isPublicPreview={isPublicPreview}
               focusMode={focusMode}
-              onToggleFocus={() => setFocusMode((f) => !f)}
+              onToggleFocus={() => {
+                setFocusMode((f) => {
+                  const next = !f;
+                  if (next) {
+                    setSolvingFocus(true);
+                    setShowHeaderInFocus(false);
+                  }
+                  return next;
+                });
+              }}
               hasPrev={activeIdxInFiltered > 0}
               hasNext={activeIdxInFiltered < filteredProblems.length - 1}
               onPrev={() => {
                 if (activeIdxInFiltered > 0) {
                   setSelectedProblemCode(filteredProblems[activeIdxInFiltered - 1].problem_code);
+                  setSolvingFocus(true);
+                  setShowHeaderInFocus(false);
                 }
               }}
               onNext={() => {
                 if (activeIdxInFiltered < filteredProblems.length - 1) {
                   setSelectedProblemCode(filteredProblems[activeIdxInFiltered + 1].problem_code);
+                  setSolvingFocus(true);
+                  setShowHeaderInFocus(false);
                 }
               }}
               onJumpToCode={handleJumpToProblem}
               onSaveProgress={handleSaveProgress}
+              onStartSolving={() => {
+                setSolvingFocus(true);
+                setShowHeaderInFocus(false);
+              }}
             />
           ) : (
             <div className="rm-panel" style={{ textAlign: 'center', padding: '40px 20px' }}>

@@ -217,7 +217,7 @@ export default async function PublicSheetPage({
 
   if (sheet.sheet_type === 'SQL') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px' }}>
         <SqlSheetDetailClient
           sheet={sheet}
           questions={sheet.sqlQuestions}
@@ -230,7 +230,7 @@ export default async function PublicSheetPage({
 
   if (sheet.sheet_type === 'APTITUDE') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px' }}>
         <AptitudeSheetDetailClient
           sheet={sheet}
           chapters={sheet.aptitudeChapters}
@@ -244,7 +244,7 @@ export default async function PublicSheetPage({
 
   if (sheet.sheet_type === 'TCS_PREP' && sheet.tcsData) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px' }}>
         <TcsPrepSheetDetailClient
           sheet={sheet}
           chapters={sheet.tcsData.chapters}
@@ -261,7 +261,7 @@ export default async function PublicSheetPage({
 
   if (sheet.sheet_type === 'ROADMAP') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '24px', paddingInline: '16px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px', paddingInline: '16px' }}>
         <RoadmapSheetDetailClient
           sheet={sheet}
           levels={sheet.roadmapLevels}

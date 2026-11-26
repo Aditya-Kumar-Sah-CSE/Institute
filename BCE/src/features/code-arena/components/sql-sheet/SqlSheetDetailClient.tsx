@@ -7,12 +7,14 @@ import {
   ArrowLeft,
   ArrowRight,
   Award,
+  BarChart3,
   BookOpen,
   Bookmark,
   Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Circle,
   Database,
   FileText,
@@ -29,7 +31,6 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
 import CertificateRenderer from '../CertificateRenderer';
@@ -138,6 +139,13 @@ export default function SqlSheetDetailClient({
   const [activeQNum, setActiveQNum] = useState<number | null>(null);
   const [jumpInput, setJumpInput] = useState<string>('');
   const [lastPracticedQ, setLastPracticedQ] = useState<number | null>(null);
+  const [isQuizActive, setIsQuizActive] = useState(false);
+  const [showHeaderInFocus, setShowHeaderInFocus] = useState(false);
+
+  const isSolvingFocus =
+    (activeTab === 'arena' && activeQNum !== null) ||
+    (activeTab === 'quiz' && isQuizActive);
+  const hideTopHero = isSolvingFocus && !showHeaderInFocus;
 
   // Share, Modals, Certificate
   const [copiedShare, setCopiedShare] = useState(false);
@@ -263,6 +271,7 @@ export default function SqlSheetDetailClient({
   const openQuestion = (qNum: number) => {
     setActiveQNum(qNum);
     setActiveTab('arena');
+    setShowHeaderInFocus(false);
     setLastPracticedQ(qNum);
     try {
       localStorage.setItem(storageKey, String(qNum));
@@ -410,9 +419,11 @@ export default function SqlSheetDetailClient({
   };
 
   return (
-    <div className="container code-arena-container sql-sheet-shell">
-      {/* Top Header */}
-      <div className="sql-top-bar">
+    <div className={`container code-arena-container sql-sheet-shell ${hideTopHero ? 'is-focus-solving' : ''}`}>
+      {/* Top Header & Hero (auto-hidden during solving so practice workspace sits at top) */}
+      {!hideTopHero && (
+        <>
+          <div className="sql-top-bar">
         <div className="sql-top-left">
           <Link href={isPublicPreview ? '/' : '/code-arena/sheets'} className="sql-back-link">
             <ArrowLeft size={16} />
@@ -602,6 +613,8 @@ export default function SqlSheetDetailClient({
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Main Workspace Tabs */}
       <div className="sql-main-tabs" role="tablist">
@@ -609,7 +622,10 @@ export default function SqlSheetDetailClient({
           type="button"
           role="tab"
           aria-selected={activeTab === 'arena'}
-          onClick={() => setActiveTab('arena')}
+          onClick={() => {
+            setShowHeaderInFocus(false);
+            setActiveTab('arena');
+          }}
           className={`sql-main-tab ${activeTab === 'arena' ? 'active' : ''}`}
         >
           <Layers size={16} /> Practice Arena ({questions.length})
@@ -620,6 +636,7 @@ export default function SqlSheetDetailClient({
           role="tab"
           aria-selected={activeTab === 'quiz'}
           onClick={() => {
+            setShowHeaderInFocus(false);
             setActiveQNum(null);
             setActiveTab('quiz');
           }}
@@ -633,6 +650,7 @@ export default function SqlSheetDetailClient({
           role="tab"
           aria-selected={activeTab === 'tables'}
           onClick={() => {
+            setShowHeaderInFocus(false);
             setActiveQNum(null);
             setActiveTab('tables');
           }}
@@ -646,6 +664,7 @@ export default function SqlSheetDetailClient({
           role="tab"
           aria-selected={activeTab === 'cheatsheet'}
           onClick={() => {
+            setShowHeaderInFocus(false);
             setActiveQNum(null);
             setActiveTab('cheatsheet');
           }}
@@ -653,6 +672,18 @@ export default function SqlSheetDetailClient({
         >
           <FileText size={16} /> Quick Revision Cheat Sheet
         </button>
+
+        {isSolvingFocus && (
+          <button
+            type="button"
+            onClick={() => setShowHeaderInFocus((v) => !v)}
+            className="sql-main-tab sql-focus-info-btn"
+            title={showHeaderInFocus ? 'Collapse top header into Focus Mode' : 'Show sheet header, progress & reviews'}
+          >
+            {showHeaderInFocus ? <ChevronUp size={14} /> : <BarChart3 size={14} />}
+            <span>{showHeaderInFocus ? 'Focus View' : `${stats.pct}% · Sheet Info`}</span>
+          </button>
+        )}
       </div>
 
       {/* TAB 1: PRACTICE ARENA (Focused Workbench OR Paginated List) */}
@@ -988,6 +1019,7 @@ export default function SqlSheetDetailClient({
           progressMap={progressMap}
           isPublicPreview={isPublicPreview}
           onSubmitMcq={(p) => handleSaveProgress(p)}
+          onQuizActiveChange={setIsQuizActive}
         />
       )}
 

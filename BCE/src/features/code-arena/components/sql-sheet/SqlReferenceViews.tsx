@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Database,
   Sparkles,
@@ -211,6 +211,7 @@ interface QuizSessionViewProps {
     isSolved: boolean;
     selectedOption: string;
   }) => Promise<{ xpAwarded?: number } | void>;
+  onQuizActiveChange?: (active: boolean) => void;
 }
 
 export function QuizSessionView({
@@ -218,6 +219,7 @@ export function QuizSessionView({
   progressMap,
   isPublicPreview = false,
   onSubmitMcq,
+  onQuizActiveChange,
 }: QuizSessionViewProps) {
   const mcqs = useMemo(() => questions.filter((q) => q.type === 'MCQ'), [questions]);
   const mcqSections = useMemo(() => {
@@ -240,6 +242,11 @@ export function QuizSessionView({
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [sessionXp, setSessionXp] = useState<number>(0);
   const [finished, setFinished] = useState<boolean>(false);
+
+  useEffect(() => {
+    onQuizActiveChange?.(quizActive && !finished);
+    return () => onQuizActiveChange?.(false);
+  }, [quizActive, finished, onQuizActiveChange]);
 
   const startQuiz = () => {
     let pool = [...mcqs];

@@ -221,6 +221,7 @@ interface AptitudeMockTestProps {
     isSolved: boolean;
     selectedOption: string;
   }) => Promise<{ xpAwarded?: number } | void>;
+  onQuizActiveChange?: (active: boolean) => void;
 }
 
 export function AptitudeMockTestView({
@@ -229,6 +230,7 @@ export function AptitudeMockTestView({
   progressMap,
   isPublicPreview = false,
   onSubmitMcq,
+  onQuizActiveChange,
 }: AptitudeMockTestProps) {
   const [scope, setScope] = useState<string>('PLACEMENT_MIX');
   const [deckSize, setDeckSize] = useState<number>(20);
@@ -260,6 +262,11 @@ export function AptitudeMockTestView({
     }, 1000);
     return () => window.clearInterval(id);
   }, [quizActive, finished, enableTimer, secondsLeft]);
+
+  useEffect(() => {
+    onQuizActiveChange?.(quizActive && !finished);
+    return () => onQuizActiveChange?.(false);
+  }, [quizActive, finished, onQuizActiveChange]);
 
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);

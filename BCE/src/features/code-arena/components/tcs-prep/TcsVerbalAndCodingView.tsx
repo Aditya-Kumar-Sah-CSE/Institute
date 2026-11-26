@@ -32,6 +32,7 @@ interface VerbalStudioProps {
     isSolved: boolean;
     submittedText: string;
   }) => Promise<{ xpAwarded?: number } | void>;
+  onSolvingActiveChange?: (active: boolean) => void;
 }
 
 const CPP_STARTER = `#include <bits/stdc++.h>
@@ -51,6 +52,7 @@ export function TcsVerbalStudioView({
   progressMap,
   isPublicPreview = false,
   onSaveDrill,
+  onSolvingActiveChange,
 }: VerbalStudioProps) {
   const passages = useMemo(() => drills.filter((d) => d.drill_type === 'PASSAGE_RECALL'), [drills]);
   const emails = useMemo(() => drills.filter((d) => d.drill_type === 'EMAIL_WRITING'), [drills]);
@@ -109,6 +111,14 @@ export function TcsVerbalStudioView({
       return () => window.clearInterval(t);
     }
   }, [phase, secondsLeft, activeDrill]);
+
+  useEffect(() => {
+    const active = Boolean(
+      activeDrill && (activeDrill.drill_type === 'EMAIL_WRITING' || phase === 'reading' || phase === 'writing')
+    );
+    onSolvingActiveChange?.(active);
+    return () => onSolvingActiveChange?.(false);
+  }, [activeDrill, phase, onSolvingActiveChange]);
 
   if (!activeDrill) return null;
 
