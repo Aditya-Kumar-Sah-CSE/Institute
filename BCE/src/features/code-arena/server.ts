@@ -1,17 +1,35 @@
 import { createClient } from '@/lib/supabase/server';
 import { canCreateLearningContent, normalizeRole } from '@/lib/role-utils';
 
+export const SHEET_MASTER_CREATOR_EMAIL = 'iambestadi@gmail.com';
+
+export function canManageSheet(
+  actor: {
+    user?: { id?: string | null; email?: string | null } | null;
+    isInstructor?: boolean;
+  },
+  sheetCreatedBy?: string | null
+): boolean {
+  const email = (actor.user?.email || '').trim().toLowerCase();
+  return Boolean(
+    actor.isInstructor ||
+      email === SHEET_MASTER_CREATOR_EMAIL ||
+      (sheetCreatedBy && actor.user?.id && actor.user.id === sheetCreatedBy)
+  );
+}
+
 export async function getCodeArenaActor() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, profile: null, isInstructor: false };
   const { data: profile } = await supabase.from('profiles').select('id, role, status, graduation_period, institution_id').eq('id', user.id).single();
   const role = normalizeRole(profile?.role);
+  const email = (user.email || '').trim().toLowerCase();
   return {
     supabase,
     user,
     profile,
-    isInstructor: canCreateLearningContent(role, profile?.status)
+    isInstructor: canCreateLearningContent(role, profile?.status) || email === SHEET_MASTER_CREATOR_EMAIL
   };
 }
 

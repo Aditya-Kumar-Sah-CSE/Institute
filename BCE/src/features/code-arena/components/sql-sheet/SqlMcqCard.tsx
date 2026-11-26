@@ -10,6 +10,7 @@ import {
   Bookmark,
   ChevronDown,
   ChevronUp,
+  Pencil,
   Sparkles,
   AlertCircle,
 } from 'lucide-react';
@@ -20,6 +21,8 @@ interface SqlMcqCardProps {
   question: SqlSheetQuestion;
   progress?: SqlQuestionProgress;
   isPublicPreview?: boolean;
+  canEdit?: boolean;
+  onEditQuestion?: () => void;
   onSubmitAnswer: (payload: {
     questionNumber: number;
     questionType: 'MCQ';
@@ -33,6 +36,8 @@ export default function SqlMcqCard({
   question,
   progress,
   isPublicPreview = false,
+  canEdit = false,
+  onEditQuestion,
   onSubmitAnswer,
   onToggleBookmark,
 }: SqlMcqCardProps) {
@@ -130,6 +135,16 @@ export default function SqlMcqCard({
               title={isBookmarked ? 'Remove Bookmark' : 'Bookmark Question'}
             >
               <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          {canEdit && onEditQuestion && (
+            <button
+              type="button"
+              onClick={onEditQuestion}
+              className="sql-icon-toggle"
+              title="Edit Question"
+            >
+              <Pencil size={15} />
             </button>
           )}
         </div>

@@ -73,6 +73,7 @@ export default async function CodingSheetsPage() {
     <SheetsListClient 
       initialSheets={sheets || []} 
       isInstructor={isInstructor} 
+      currentUserId={user.id}
       solvedProblemIds={solvedProblemIds}
       enrolledSheetIds={enrolledSheetIds}
       sqlSolvedCountBySheet={sqlSolvedCountBySheet}

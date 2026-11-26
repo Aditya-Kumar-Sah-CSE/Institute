@@ -82,6 +82,19 @@
   }
 }
 
+@media (max-width: 768px) {
+  .code-arena-page:not(.ide-mode) {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    gap: 10px !important;
+  }
+  .dashboard-shell:has(.code-arena-page:not(.ide-mode)) .dashboard-content,
+  .dashboard-layout:has(.code-arena-page:not(.ide-mode)) .dashboard-content,
+  .content-wrapper:has(.code-arena-page:not(.ide-mode)) .dashboard-content {
+    padding: 6px 2px 12px 2px !important;
+  }
+}
+
 .code-arena-workspace-container {
   display: flex;
   flex-direction: column;
@@ -5016,7 +5029,27 @@
 
 @media (max-width: 600px) {
   .sheet-stats-container {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .sheet-stat-box {
+    padding: 8px 9px !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    border-radius: 10px !important;
+  }
+  .sheet-stat-box > div {
+    min-width: 0 !important;
+  }
+  .sheet-hero-left,
+  .sheet-hero-stats {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  .sheet-hero-overview {
+    padding: 12px 10px !important;
+    gap: 12px !important;
+    border-radius: 12px !important;
   }
 }
 
@@ -5185,13 +5218,30 @@
 @media (max-width: 768px) {
   .practice-row-item {
     flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+  .row-item-left {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    gap: 10px !important;
     align-items: flex-start !important;
-    padding: 12px 14px !important;
-    gap: 12px !important;
   }
   .row-item-right {
     width: 100% !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    padding-top: 6px !important;
+    border-top: 1px dashed rgba(148, 163, 184, 0.2) !important;
+  }
+  .row-item-right > :last-child {
+    margin-left: auto !important;
+  }
+  .tag-pill {
+    white-space: normal !important;
+    word-break: break-word !important;
   }
 }
 
@@ -5504,7 +5554,27 @@
 
 @media (max-width: 600px) {
   .sheet-stats-container {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .sheet-stat-box {
+    padding: 8px 9px !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    border-radius: 10px !important;
+  }
+  .sheet-stat-box > div {
+    min-width: 0 !important;
+  }
+  .sheet-hero-left,
+  .sheet-hero-stats {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  .sheet-hero-overview {
+    padding: 12px 10px !important;
+    gap: 12px !important;
+    border-radius: 12px !important;
   }
 }
 
@@ -5673,13 +5743,30 @@
 @media (max-width: 768px) {
   .practice-row-item {
     flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+  .row-item-left {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    gap: 10px !important;
     align-items: flex-start !important;
-    padding: 12px 14px !important;
-    gap: 12px !important;
   }
   .row-item-right {
     width: 100% !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    padding-top: 6px !important;
+    border-top: 1px dashed rgba(148, 163, 184, 0.2) !important;
+  }
+  .row-item-right > :last-child {
+    margin-left: auto !important;
+  }
+  .tag-pill {
+    white-space: normal !important;
+    word-break: break-word !important;
   }
 }
 

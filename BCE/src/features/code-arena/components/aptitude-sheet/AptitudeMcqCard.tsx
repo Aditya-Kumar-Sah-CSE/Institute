@@ -10,6 +10,7 @@ import {
   Bookmark,
   ChevronDown,
   ChevronUp,
+  Pencil,
   Sparkles,
   AlertCircle,
   Zap,
@@ -26,6 +27,8 @@ interface AptitudeMcqCardProps {
   chapter?: AptitudeChapter;
   progress?: AptitudeProgress;
   isPublicPreview?: boolean;
+  canEdit?: boolean;
+  onEditQuestion?: () => void;
   onSubmitAnswer: (payload: {
     questionNumber: number;
     isSolved: boolean;
@@ -39,6 +42,8 @@ export default function AptitudeMcqCard({
   chapter,
   progress,
   isPublicPreview = false,
+  canEdit = false,
+  onEditQuestion,
   onSubmitAnswer,
   onToggleBookmark,
 }: AptitudeMcqCardProps) {
@@ -145,6 +150,16 @@ export default function AptitudeMcqCard({
               title={isBookmarked ? 'Remove Bookmark' : 'Bookmark for 3-Day Revision'}
             >
               <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          {canEdit && onEditQuestion && (
+            <button
+              type="button"
+              onClick={onEditQuestion}
+              className="sql-icon-toggle"
+              title="Edit Question"
+            >
+              <Pencil size={15} />
             </button>
           )}
         </div>

@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
+  Pencil,
   RotateCcw,
   Sparkles,
   XCircle,
@@ -26,6 +27,8 @@ interface TcsMcqCardProps {
   chapter?: TcsChapter;
   progress?: TcsProgress;
   isPublicPreview?: boolean;
+  canEdit?: boolean;
+  onEditQuestion?: () => void;
   onSubmitAnswer: (payload: {
     itemKey: string;
     itemType: 'MCQ';
@@ -40,6 +43,8 @@ export default function TcsMcqCard({
   chapter,
   progress,
   isPublicPreview = false,
+  canEdit = false,
+  onEditQuestion,
   onSubmitAnswer,
   onToggleBookmark,
 }: TcsMcqCardProps) {
@@ -147,6 +152,16 @@ export default function TcsMcqCard({
               title={isBookmarked ? 'Remove Bookmark' : 'Bookmark for 3-Day Revision'}
             >
               <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          {canEdit && onEditQuestion && (
+            <button
+              type="button"
+              onClick={onEditQuestion}
+              className="sql-icon-toggle"
+              title="Edit Question"
+            >
+              <Pencil size={15} />
             </button>
           )}
         </div>

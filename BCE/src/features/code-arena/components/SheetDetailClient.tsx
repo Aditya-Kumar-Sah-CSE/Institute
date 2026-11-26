@@ -224,6 +224,8 @@ export default function SheetDetailClient({
   const [copiedSubmissionCode, setCopiedSubmissionCode] = useState(false);
 
   // Edit fields
+  const [editProblemTitle, setEditProblemTitle] = useState('');
+  const [editProblemDifficulty, setEditProblemDifficulty] = useState('Medium');
   const [editYoutubeUrl, setEditYoutubeUrl] = useState('');
   const [editSolutionText, setEditSolutionText] = useState('');
   const [savingSolution, setSavingSolution] = useState(false);
@@ -317,6 +319,13 @@ export default function SheetDetailClient({
   // Instructors/admins and creators bypass enrollment gate
   const hasAccess = canEdit || isEnrolled || enrollmentAccess === 'public';
 
+  useEffect(() => {
+    if (!canEdit || typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('edit') === '1') {
+      setIsEditing(true);
+    }
+  }, [canEdit]);
+
   const getYoutubeEmbedUrl = (url: string) => {
     if (!url) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -338,6 +347,8 @@ export default function SheetDetailClient({
 
   const handleEditSolution = (problem: Problem) => {
     setEditProblem(problem);
+    setEditProblemTitle(problem.title || '');
+    setEditProblemDifficulty(problem.difficulty || 'Medium');
     setEditYoutubeUrl(problem.youtube_url || '');
     setEditSolutionText(problem.text_solution || '');
   };
@@ -350,20 +361,25 @@ export default function SheetDetailClient({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          problem_id: editProblem.id,
-          youtube_url: editYoutubeUrl.trim(),
-          text_solution: editSolutionText.trim(),
+          editTarget: 'dsa_problem',
+          questionData: {
+            id: editProblem.id,
+            title: editProblemTitle.trim() || editProblem.title,
+            difficulty: editProblemDifficulty,
+            youtube_url: editYoutubeUrl.trim(),
+            text_solution: editSolutionText.trim(),
+          },
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        alert(json.error?.message || 'Failed to save solution.');
+        alert(json.error?.message || 'Failed to save problem.');
       } else {
         setEditProblem(null);
         router.refresh();
       }
     } catch {
-      alert('Network error. Failed to save solution.');
+      alert('Network error. Failed to save problem.');
     } finally {
       setSavingSolution(false);
     }
@@ -1507,14 +1523,61 @@ export default function SheetDetailClient({
         </div>
       </Modal>
 
-      {/* Edit Solution Modal */}
+      {/* Edit Problem, Solution & Video Modal */}
       <Modal
         isOpen={editProblem !== null}
         onClose={() => setEditProblem(null)}
-        title={`Manage Solution & Video: ${editProblem?.title}`}
+        title={`Edit Problem & Solution: ${editProblem?.title}`}
         size="lg"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Problem Title
+              </label>
+              <input
+                type="text"
+                value={editProblemTitle}
+                onChange={(e) => setEditProblemTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)',
+                  fontSize: 'var(--text-sm)',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Difficulty
+              </label>
+              <select
+                value={editProblemDifficulty}
+                onChange={(e) => setEditProblemDifficulty(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-main)',
+                  fontSize: 'var(--text-sm)',
+                  outline: 'none',
+                }}
+              >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase' }}>
               YouTube Video URL

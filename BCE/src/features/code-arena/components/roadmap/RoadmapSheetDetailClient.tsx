@@ -17,6 +17,7 @@ import {
   Flame,
   Layers,
   Lock,
+  Pencil,
   Search,
   Share2,
   Sparkles,
@@ -28,6 +29,7 @@ import {
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
 import CertificateRenderer from '../CertificateRenderer';
+import SheetEditorModal from '../SheetEditorModal';
 import SheetReviewsSection from '../SheetReviewsSection';
 import RoadmapProblemWorkbench from './RoadmapProblemWorkbench';
 import {
@@ -98,9 +100,9 @@ interface RoadmapSheetDetailClientProps {
 }
 
 export default function RoadmapSheetDetailClient({
-  sheet,
+  sheet: initialSheet,
   levels,
-  problems,
+  problems: initialProblems,
   initialProgress,
   totalEnrolledCount = 0,
   enrolledUsersList = [],
@@ -113,6 +115,32 @@ export default function RoadmapSheetDetailClient({
   isPublicPreview = false,
 }: RoadmapSheetDetailClientProps) {
   const router = useRouter();
+  const [sheet, setSheet] = useState(initialSheet);
+  const [problems, setProblems] = useState(initialProblems);
+
+  useEffect(() => {
+    setSheet(initialSheet);
+  }, [initialSheet]);
+
+  useEffect(() => {
+    setProblems(initialProblems);
+  }, [initialProblems]);
+
+  const canEdit =
+    !isPublicPreview &&
+    Boolean(isInstructor || (currentUserId && sheet.created_by === currentUserId));
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalTab, setEditModalTab] = useState<'details' | 'questions'>('details');
+  const [editTargetCode, setEditTargetCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canEdit || typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('edit') === '1') {
+      setEditModalTab('details');
+      setEditModalOpen(true);
+    }
+  }, [canEdit]);
 
   const [progressMap, setProgressMap] = useState<Record<string, RoadmapProblemProgress>>(() => {
     const m: Record<string, RoadmapProblemProgress> = {};
@@ -525,6 +553,20 @@ export default function RoadmapSheetDetailClient({
             {copiedShare ? 'Link Copied' : 'Share'}
           </button>
 
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditModalTab('details');
+                setEditTargetCode(currentProblem?.problem_code || null);
+                setEditModalOpen(true);
+              }}
+              className="rm-btn-outline"
+            >
+              <Pencil size={15} /> Edit Sheet
+            </button>
+          )}
+
           {isPublicPreview && (
             <Link href="/login" className="rm-btn-primary" style={{ textDecoration: 'none' }}>
               Sign In To Run Code & Earn XP
@@ -932,6 +974,12 @@ export default function RoadmapSheetDetailClient({
                 setSolvingFocus(true);
                 setShowHeaderInFocus(false);
               }}
+              canEdit={canEdit}
+              onEditProblem={() => {
+                setEditModalTab('questions');
+                setEditTargetCode(currentProblem.problem_code);
+                setEditModalOpen(true);
+              }}
             />
           ) : (
             <div className="rm-panel" style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -1069,6 +1117,30 @@ export default function RoadmapSheetDetailClient({
         >
           <CertificateRenderer cert={certificate} canEditSettings={false} />
         </Modal>
+      )}
+
+      {canEdit && (
+        <SheetEditorModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          sheet={sheet}
+          sheetType="ROADMAP"
+          questions={problems}
+          initialTab={editModalTab}
+          initialQuestionKey={editTargetCode}
+          onSheetMetaSaved={(upd) => {
+            setSheet((prev) => ({ ...prev, ...upd }));
+            router.refresh();
+          }}
+          onQuestionSaved={(updProb) => {
+            setProblems((prev) =>
+              prev.map((item) =>
+                item.problem_code === updProb.problem_code ? { ...item, ...updProb } : item
+              )
+            );
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  Pencil,
   Play,
   RotateCcw,
   Sparkles,
@@ -75,6 +76,8 @@ export default function RoadmapProblemWorkbench({
   onJumpToCode,
   onSaveProgress,
   onStartSolving,
+  canEdit = false,
+  onEditProblem,
 }: {
   problem: RoadmapProblem;
   positionIndex: number;
@@ -98,6 +101,8 @@ export default function RoadmapProblemWorkbench({
     incrementAttempts?: boolean;
   }) => Promise<void>;
   onStartSolving?: () => void;
+  canEdit?: boolean;
+  onEditProblem?: () => void;
 }) {
   const [activeSubTab, setActiveSubTab] = useState<'solutions' | 'sandbox'>('solutions');
   const [revealSolutions, setRevealSolutions] = useState(true);
@@ -433,6 +438,18 @@ export default function RoadmapProblemWorkbench({
                 <CheckCircle2 size={15} />
                 {isSolved ? 'Solved ✓' : `Mark Solved (+${xpReward} XP)`}
               </button>
+
+              {canEdit && onEditProblem && (
+                <button
+                  type="button"
+                  onClick={onEditProblem}
+                  className="rm-btn-outline"
+                  style={{ padding: '6px 10px' }}
+                  title="Edit Problem Details"
+                >
+                  <Pencil size={14} /> Edit
+                </button>
+              )}
             </>
           )}
         </div>

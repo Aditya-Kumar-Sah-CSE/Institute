@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCodeArenaActor } from '@/features/code-arena/server';
+import { canManageSheet, getCodeArenaActor } from '@/features/code-arena/server';
 import { generateUniqueSheetSlug } from '@/lib/slug-utils';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import {
@@ -181,8 +181,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: false, error: { message: `Sheet not found (id parameter: "${id}")` } }, { status: 404 });
     }
 
-    if (!isInstructor) {
-      return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors can edit coding sheets.' } }, { status: 403 });
+    if (!canManageSheet({ user, isInstructor }, sheet.created_by)) {
+      return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors or sheet creators can edit coding sheets.' } }, { status: 403 });
     }
 
     const body = await request.json();
@@ -198,8 +198,159 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       youtube_url, 
       text_solution,
       attachment_url,
-      attachment_type
+      attachment_type,
+      editTarget,
+      questionData,
     } = body;
+
+    // Handle question / drill / problem content updates across all 5 sheet types
+    if (editTarget && questionData && typeof questionData === 'object') {
+      if (editTarget === 'tcs_question') {
+        const qNum = Number(questionData.question_number);
+        if (!Number.isFinite(qNum)) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid question_number' } }, { status: 400 });
+        }
+        const optKey = String(questionData.correct_option || 'A').toUpperCase();
+        const opts = questionData.options && typeof questionData.options === 'object' ? questionData.options : undefined;
+        const { error: qErr } = await serviceRoleClient
+          .from('coding_sheet_tcs_questions')
+          .update({
+            question: questionData.question,
+            options: opts,
+            correct_option: optKey,
+            correct_answer: opts && opts[optKey] !== undefined ? String(opts[optKey]) : questionData.correct_answer,
+            difficulty: questionData.difficulty,
+            level_label: questionData.level_label,
+            chapter_title: questionData.chapter_title,
+            explanation: questionData.explanation ?? '',
+            image_url: questionData.image_url !== undefined ? (questionData.image_url || null) : undefined,
+          })
+          .eq('sheet_id', sheet.id)
+          .eq('question_number', qNum);
+        if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        return NextResponse.json({ success: true });
+      }
+
+      if (editTarget === 'tcs_drill') {
+        const drillCode = String(questionData.drill_code || '').trim();
+        if (!drillCode) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid drill_code' } }, { status: 400 });
+        }
+        const { error: qErr } = await serviceRoleClient
+          .from('coding_sheet_tcs_drills')
+          .update({
+            title: questionData.title,
+            difficulty: questionData.difficulty,
+            prompt: questionData.prompt,
+            hint: questionData.hint ?? '',
+            solution_text: questionData.solution_text ?? '',
+            solution_code: questionData.solution_code !== undefined ? questionData.solution_code : undefined,
+          })
+          .eq('sheet_id', sheet.id)
+          .eq('drill_code', drillCode);
+        if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        return NextResponse.json({ success: true });
+      }
+
+      if (editTarget === 'aptitude_question') {
+        const qNum = Number(questionData.question_number);
+        if (!Number.isFinite(qNum)) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid question_number' } }, { status: 400 });
+        }
+        const optKey = String(questionData.correct_option || 'A').toUpperCase();
+        const opts = questionData.options && typeof questionData.options === 'object' ? questionData.options : undefined;
+        const { error: qErr } = await serviceRoleClient
+          .from('coding_sheet_aptitude_questions')
+          .update({
+            question: questionData.question,
+            options: opts,
+            correct_option: optKey,
+            correct_answer: opts && opts[optKey] !== undefined ? String(opts[optKey]) : questionData.correct_answer,
+            difficulty: questionData.difficulty,
+            level_label: questionData.level_label,
+            chapter_title: questionData.chapter_title,
+            explanation: questionData.explanation ?? '',
+          })
+          .eq('sheet_id', sheet.id)
+          .eq('question_number', qNum);
+        if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        return NextResponse.json({ success: true });
+      }
+
+      if (editTarget === 'sql_question') {
+        const qNum = Number(questionData.question_number);
+        if (!Number.isFinite(qNum)) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid question_number' } }, { status: 400 });
+        }
+        const { error: qErr } = await serviceRoleClient
+          .from('coding_sheet_sql_questions')
+          .update({
+            question: questionData.question,
+            section: questionData.section,
+            difficulty: questionData.difficulty,
+            options: questionData.options !== undefined ? questionData.options : undefined,
+            correct_option: questionData.correct_option !== undefined ? questionData.correct_option : undefined,
+            correct_answer: questionData.correct_answer !== undefined ? questionData.correct_answer : undefined,
+            solution_sql: questionData.solution_sql !== undefined ? questionData.solution_sql : undefined,
+            explanation_points: Array.isArray(questionData.explanation_points) ? questionData.explanation_points : undefined,
+          })
+          .eq('sheet_id', sheet.id)
+          .eq('question_number', qNum);
+        if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        return NextResponse.json({ success: true });
+      }
+
+      if (editTarget === 'roadmap_problem') {
+        const code = String(questionData.problem_code || '').trim();
+        if (!code) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid problem_code' } }, { status: 400 });
+        }
+        const { error: qErr } = await serviceRoleClient
+          .from('coding_sheet_roadmap_problems')
+          .update({
+            title: questionData.title,
+            difficulty: questionData.difficulty,
+            topic: questionData.topic,
+            problem_statement: questionData.problem_statement,
+            description: questionData.description ?? '',
+            theory: questionData.theory ?? '',
+            explanation: questionData.explanation ?? '',
+          })
+          .eq('sheet_id', sheet.id)
+          .eq('problem_code', code);
+        if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        return NextResponse.json({ success: true });
+      }
+
+      if (editTarget === 'dsa_problem') {
+        const pId = String(questionData.id || '').trim();
+        if (!pId) {
+          return NextResponse.json({ success: false, error: { message: 'Invalid problem id' } }, { status: 400 });
+        }
+        if (questionData.title !== undefined || questionData.difficulty !== undefined) {
+          const probUpdates: Record<string, any> = {};
+          if (questionData.title !== undefined) probUpdates.title = String(questionData.title).trim();
+          if (questionData.difficulty !== undefined) probUpdates.difficulty = String(questionData.difficulty);
+          const { error: pErr } = await serviceRoleClient
+            .from('coding_problems')
+            .update(probUpdates)
+            .eq('id', pId);
+          if (pErr) return NextResponse.json({ success: false, error: { message: pErr.message } }, { status: 400 });
+        }
+        if (questionData.text_solution !== undefined || questionData.youtube_url !== undefined) {
+          const linkUpdates: Record<string, any> = {};
+          if (questionData.text_solution !== undefined) linkUpdates.text_solution = questionData.text_solution || null;
+          if (questionData.youtube_url !== undefined) linkUpdates.youtube_url = questionData.youtube_url || null;
+          const { error: lErr } = await serviceRoleClient
+            .from('coding_sheet_problems')
+            .update(linkUpdates)
+            .eq('sheet_id', sheet.id)
+            .eq('problem_id', pId);
+          if (lErr) return NextResponse.json({ success: false, error: { message: lErr.message } }, { status: 400 });
+        }
+        return NextResponse.json({ success: true });
+      }
+    }
 
     // Handle single problem's YT video and text solution update
     if (problem_id !== undefined) {
@@ -335,8 +486,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: false, error: { message: `Sheet not found (id parameter: "${id}")` } }, { status: 404 });
   }
 
-  if (!isInstructor) {
-    return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors can delete coding sheets.' } }, { status: 403 });
+  if (!canManageSheet({ user, isInstructor }, sheet.created_by)) {
+    return NextResponse.json({ success: false, error: { message: 'Forbidden: Only instructors or sheet creators can delete coding sheets.' } }, { status: 403 });
   }
 
   const { error: deleteError } = await serviceRoleClient.from('coding_sheets').delete().eq('id', sheet.id);

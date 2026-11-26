@@ -261,7 +261,7 @@ export default async function PublicSheetPage({
 
   if (sheet.sheet_type === 'ROADMAP') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px', paddingInline: '16px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-primary, #f8fafc)', paddingTop: '12px', paddingInline: '2px' }}>
         <RoadmapSheetDetailClient
           sheet={sheet}
           levels={sheet.roadmapLevels}

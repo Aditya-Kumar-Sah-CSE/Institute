@@ -21,6 +21,7 @@ import {
   Flame,
   Layers,
   Lock,
+  Pencil,
   Play,
   Search,
   Share2,
@@ -34,6 +35,7 @@ import {
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
 import CertificateRenderer from '../CertificateRenderer';
+import SheetEditorModal from '../SheetEditorModal';
 import SheetReviewsSection from '../SheetReviewsSection';
 import SqlMcqCard from './SqlMcqCard';
 import SqlQueryWorkspace from './SqlQueryWorkspace';
@@ -98,7 +100,7 @@ type MainTab = 'arena' | 'quiz' | 'tables' | 'cheatsheet';
 const PAGE_SIZE = 15;
 
 export default function SqlSheetDetailClient({
-  sheet,
+  sheet: initialSheet,
   questions: rawQuestions,
   initialProgress,
   totalEnrolledCount = 0,
@@ -112,11 +114,35 @@ export default function SqlSheetDetailClient({
   isPublicPreview = false,
 }: SqlSheetDetailClientProps) {
   const router = useRouter();
-  const questions = useMemo(
-    () => (rawQuestions || []).map(normalizeSqlQuestion),
-    [rawQuestions]
+  const [sheet, setSheet] = useState(initialSheet);
+  const [questions, setQuestions] = useState<SqlSheetQuestion[]>(() =>
+    (rawQuestions || []).map(normalizeSqlQuestion)
   );
   const [activeTab, setActiveTab] = useState<MainTab>('arena');
+
+  useEffect(() => {
+    setSheet(initialSheet);
+  }, [initialSheet]);
+
+  useEffect(() => {
+    setQuestions((rawQuestions || []).map(normalizeSqlQuestion));
+  }, [rawQuestions]);
+
+  const canEdit =
+    !isPublicPreview &&
+    Boolean(isInstructor || (currentUserId && sheet.created_by === currentUserId));
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalTab, setEditModalTab] = useState<'details' | 'questions'>('details');
+  const [editTargetQNum, setEditTargetQNum] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!canEdit || typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('edit') === '1') {
+      setEditModalTab('details');
+      setEditModalOpen(true);
+    }
+  }, [canEdit]);
 
   // Progress state map keyed by question_number
   const [progressMap, setProgressMap] = useState<Record<number, SqlQuestionProgress>>(() => {
@@ -450,6 +476,20 @@ export default function SqlSheetDetailClient({
             {copiedShare ? 'Link Copied' : 'Share Sheet'}
           </button>
 
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditModalTab('details');
+                setEditTargetQNum(activeQNum);
+                setEditModalOpen(true);
+              }}
+              className="sql-btn sql-btn-secondary"
+            >
+              <Pencil size={15} /> Edit Sheet
+            </button>
+          )}
+
           {!isPublicPreview && stats.solvedTotal >= questions.length && (
             <button type="button" onClick={handleClaimCertificate} className="sql-btn sql-btn-emerald">
               <Award size={15} />
@@ -746,6 +786,12 @@ export default function SqlSheetDetailClient({
                   question={activeQuestionObj}
                   progress={progressMap[activeQuestionObj.question_number]}
                   isPublicPreview={isPublicPreview}
+                  canEdit={canEdit}
+                  onEditQuestion={() => {
+                    setEditModalTab('questions');
+                    setEditTargetQNum(activeQuestionObj.question_number);
+                    setEditModalOpen(true);
+                  }}
                   onSubmitAnswer={(p) => handleSaveProgress(p)}
                   onToggleBookmark={handleToggleBookmark}
                 />
@@ -754,6 +800,12 @@ export default function SqlSheetDetailClient({
                   question={activeQuestionObj}
                   progress={progressMap[activeQuestionObj.question_number]}
                   isPublicPreview={isPublicPreview}
+                  canEdit={canEdit}
+                  onEditQuestion={() => {
+                    setEditModalTab('questions');
+                    setEditTargetQNum(activeQuestionObj.question_number);
+                    setEditModalOpen(true);
+                  }}
                   onSaveProgress={(p) => handleSaveProgress(p)}
                   onToggleBookmark={handleToggleBookmark}
                 />
@@ -954,6 +1006,23 @@ export default function SqlSheetDetailClient({
                             </button>
                           )}
 
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditModalTab('questions');
+                                setEditTargetQNum(q.question_number);
+                                setEditModalOpen(true);
+                              }}
+                              className="sql-icon-toggle"
+                              style={{ width: '32px', height: '32px' }}
+                              title="Edit Question"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1135,6 +1204,32 @@ export default function SqlSheetDetailClient({
         >
           <CertificateRenderer cert={certificate} canEditSettings={false} />
         </Modal>
+      )}
+
+      {canEdit && (
+        <SheetEditorModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          sheet={sheet}
+          sheetType="SQL"
+          questions={questions}
+          initialTab={editModalTab}
+          initialQuestionKey={editTargetQNum}
+          onSheetMetaSaved={(upd) => {
+            setSheet((prev) => ({ ...prev, ...upd }));
+            router.refresh();
+          }}
+          onQuestionSaved={(updQ) => {
+            setQuestions((prev) =>
+              prev.map((item) =>
+                item.question_number === updQ.question_number
+                  ? normalizeSqlQuestion({ ...item, ...updQ })
+                  : item
+              )
+            );
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import {
   Check,
   Database,
   Bookmark,
+  Pencil,
   RotateCcw,
   Sparkles,
   Terminal,
@@ -31,6 +32,8 @@ interface SqlQueryWorkspaceProps {
   question: SqlSheetQuestion;
   progress?: SqlQuestionProgress;
   isPublicPreview?: boolean;
+  canEdit?: boolean;
+  onEditQuestion?: () => void;
   onSaveProgress: (payload: {
     questionNumber: number;
     questionType: 'QUERY';
@@ -61,6 +64,8 @@ export default function SqlQueryWorkspace({
   question,
   progress,
   isPublicPreview = false,
+  canEdit = false,
+  onEditQuestion,
   onSaveProgress,
   onToggleBookmark,
 }: SqlQueryWorkspaceProps) {
@@ -223,6 +228,16 @@ export default function SqlQueryWorkspace({
               title={isBookmarked ? 'Remove Bookmark' : 'Bookmark Query'}
             >
               <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          {canEdit && onEditQuestion && (
+            <button
+              type="button"
+              onClick={onEditQuestion}
+              className="sql-icon-toggle"
+              title="Edit SQL Question"
+            >
+              <Pencil size={15} />
             </button>
           )}
         </div>

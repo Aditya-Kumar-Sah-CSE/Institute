@@ -21,6 +21,7 @@ import {
   Flame,
   Layers,
   Lock,
+  Pencil,
   Play,
   Search,
   Share2,
@@ -33,6 +34,7 @@ import {
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
 import CertificateRenderer from '../CertificateRenderer';
+import SheetEditorModal from '../SheetEditorModal';
 import SheetReviewsSection from '../SheetReviewsSection';
 import AptitudeMcqCard from './AptitudeMcqCard';
 import {
@@ -108,9 +110,9 @@ const CATEGORIES: AptitudeCategory[] = [
 ];
 
 export default function AptitudeSheetDetailClient({
-  sheet,
+  sheet: initialSheet,
   chapters,
-  questions,
+  questions: initialQuestions,
   initialProgress,
   totalEnrolledCount = 0,
   enrolledUsersList = [],
@@ -123,7 +125,33 @@ export default function AptitudeSheetDetailClient({
   isPublicPreview = false,
 }: AptitudeSheetDetailClientProps) {
   const router = useRouter();
+  const [sheet, setSheet] = useState(initialSheet);
+  const [questions, setQuestions] = useState(initialQuestions);
   const storageKey = `aptitude_last_q_${sheet.id}`;
+
+  useEffect(() => {
+    setSheet(initialSheet);
+  }, [initialSheet]);
+
+  useEffect(() => {
+    setQuestions(initialQuestions);
+  }, [initialQuestions]);
+
+  const canEdit =
+    !isPublicPreview &&
+    Boolean(isInstructor || (currentUserId && sheet.created_by === currentUserId));
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalTab, setEditModalTab] = useState<'details' | 'questions'>('details');
+  const [editTargetQNum, setEditTargetQNum] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!canEdit || typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('edit') === '1') {
+      setEditModalTab('details');
+      setEditModalOpen(true);
+    }
+  }, [canEdit]);
 
   const [progressMap, setProgressMap] = useState<Record<number, AptitudeProgress>>(() => {
     const map: Record<number, AptitudeProgress> = {};
@@ -452,6 +480,20 @@ export default function AptitudeSheetDetailClient({
             {copiedShare ? 'Link Copied' : 'Share Sheet'}
           </button>
 
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditModalTab('details');
+                setEditTargetQNum(activeQNum);
+                setEditModalOpen(true);
+              }}
+              className="sql-btn sql-btn-secondary"
+            >
+              <Pencil size={15} /> Edit Sheet
+            </button>
+          )}
+
           {!isPublicPreview && questions.length > 0 && stats.solvedTotal >= questions.length && (
             <button type="button" onClick={handleClaimCertificate} className="sql-btn sql-btn-emerald">
               <Award size={15} />
@@ -754,6 +796,12 @@ export default function AptitudeSheetDetailClient({
                 chapter={chapterByNum[activeQuestionObj.chapter_number]}
                 progress={progressMap[activeQuestionObj.question_number]}
                 isPublicPreview={isPublicPreview}
+                canEdit={canEdit}
+                onEditQuestion={() => {
+                  setEditModalTab('questions');
+                  setEditTargetQNum(activeQuestionObj.question_number);
+                  setEditModalOpen(true);
+                }}
                 onSubmitAnswer={handleSaveProgress}
                 onToggleBookmark={handleToggleBookmark}
               />
@@ -983,6 +1031,23 @@ export default function AptitudeSheetDetailClient({
                             </button>
                           )}
 
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditModalTab('questions');
+                                setEditTargetQNum(q.question_number);
+                                setEditModalOpen(true);
+                              }}
+                              className="sql-icon-toggle"
+                              style={{ width: '32px', height: '32px' }}
+                              title="Edit Question"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1176,6 +1241,28 @@ export default function AptitudeSheetDetailClient({
         >
           <CertificateRenderer cert={certificate} canEditSettings={false} />
         </Modal>
+      )}
+
+      {canEdit && (
+        <SheetEditorModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          sheet={sheet}
+          sheetType="APTITUDE"
+          questions={questions}
+          initialTab={editModalTab}
+          initialQuestionKey={editTargetQNum}
+          onSheetMetaSaved={(upd) => {
+            setSheet((prev) => ({ ...prev, ...upd }));
+            router.refresh();
+          }}
+          onQuestionSaved={(updQ) => {
+            setQuestions((prev) =>
+              prev.map((item) => (item.question_number === updQ.question_number ? { ...item, ...updQ } : item))
+            );
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

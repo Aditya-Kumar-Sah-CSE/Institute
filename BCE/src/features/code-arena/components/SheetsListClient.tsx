@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Trophy, ArrowLeft, BookOpen, Plus, Search, 
   ChevronRight, Trash2, CheckCircle2, Award, X,
-  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star, Database, Layers, Calculator
+  Globe, Shield, Lock, Share2, Check, UserPlus, Loader2, Star, Database, Layers, Calculator, Pencil
 } from 'lucide-react';
 import CreateSheetWizard from './CreateSheetWizard';
 import Card from '@/components/ui/Card';
@@ -31,12 +31,14 @@ type CodingSheet = {
 export default function SheetsListClient({
   initialSheets,
   isInstructor,
+  currentUserId,
   solvedProblemIds,
   enrolledSheetIds: initialEnrolledIds,
   sqlSolvedCountBySheet = {},
 }: {
   initialSheets: CodingSheet[];
   isInstructor: boolean;
+  currentUserId?: string;
   solvedProblemIds: string[];
   enrolledSheetIds: string[];
   sqlSolvedCountBySheet?: Record<string, number>;
@@ -262,8 +264,9 @@ export default function SheetsListClient({
             const progressPct = totalProblems > 0 ? Math.round((solvedProblems / totalProblems) * 100) : 0;
             const isCompleted = progressPct === 100 && totalProblems > 0;
             const isEnrolled = enrolledIds.includes(sheet.id);
-            // Instructors always get direct access (no enroll needed)
-            const showEnroll = !isInstructor && !isEnrolled;
+            const canManage = isInstructor || Boolean(currentUserId && sheet.created_by === currentUserId);
+            // Creators & instructors always get direct access (no enroll needed)
+            const showEnroll = !canManage && !isEnrolled;
 
             return (
               <div
@@ -423,7 +426,27 @@ export default function SheetsListClient({
                     {copiedSheetId === sheet.id ? <Check size={15} /> : <Share2 size={15} />}
                   </button>
 
-                  {isInstructor && (
+                  {canManage && (
+                    <Link
+                      href={`/code-arena/sheets/${sheet.id}?edit=1`}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '6px',
+                        background: 'rgba(6, 182, 212, 0.08)',
+                        border: '1px solid rgba(6, 182, 212, 0.25)',
+                        color: '#22d3ee',
+                        display: 'grid',
+                        placeItems: 'center',
+                        textDecoration: 'none',
+                      }}
+                      title="Edit Sheet Name, Details & Questions"
+                    >
+                      <Pencil size={15} />
+                    </Link>
+                  )}
+
+                  {canManage && (
                     <button
                       onClick={() => handleDeleteSheet(sheet.id)}
                       style={{

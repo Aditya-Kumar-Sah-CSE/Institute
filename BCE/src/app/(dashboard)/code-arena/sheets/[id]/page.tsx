@@ -1,7 +1,7 @@
 import '@/features/code-arena/components/CodeArena.css';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { getCodeArenaActor } from '@/features/code-arena/server';
+import { canManageSheet, getCodeArenaActor } from '@/features/code-arena/server';
 import SheetDetailClient from '@/features/code-arena/components/SheetDetailClient';
 import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
 import RoadmapSheetDetailClient from '@/features/code-arena/components/roadmap/RoadmapSheetDetailClient';
@@ -52,6 +52,8 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
   if (sheetError || !sheet) {
     notFound();
   }
+
+  const canEditSheet = canManageSheet({ user, isInstructor }, sheet.created_by);
 
   // Dedicated rich view when this sheet is an SQL + MCQ Mastery sheet
   if ((sheet as any).sheet_type === 'SQL') {
@@ -136,7 +138,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           initialCertificate={existingCert || null}
           reviewsData={sheetReviewsData as any}
           currentUserId={user.id}
-          isInstructor={isInstructor}
+          isInstructor={canEditSheet}
           isPublicPreview={false}
         />
       </Suspense>
@@ -215,7 +217,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           initialCertificate={existingCert || null}
           reviewsData={sheetReviewsData as any}
           currentUserId={user.id}
-          isInstructor={isInstructor}
+          isInstructor={canEditSheet}
           isPublicPreview={false}
         />
       </Suspense>
@@ -297,7 +299,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           initialCertificate={existingCert || null}
           reviewsData={sheetReviewsData as any}
           currentUserId={user.id}
-          isInstructor={isInstructor}
+          isInstructor={canEditSheet}
           isPublicPreview={false}
         />
       </Suspense>
@@ -394,7 +396,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
           initialCertificate={existingCert || null}
           reviewsData={sheetReviewsData as any}
           currentUserId={user.id}
-          isInstructor={isInstructor}
+          isInstructor={canEditSheet}
           isPublicPreview={false}
         />
       </Suspense>
@@ -538,7 +540,7 @@ export default async function SheetDetailPage({ params }: { params: Promise<{ id
         sheet={{ ...sheet, problems }}
         solvedProblemIds={solvedProblemIds}
         solvedStatusMap={solvedStatusMap}
-        isInstructor={isInstructor}
+        isInstructor={canEditSheet}
         currentUser={user}
         totalStudentsSolving={uniqueSolversCount}
         totalEnrolledSolvers={totalEnrolledSolvers}
