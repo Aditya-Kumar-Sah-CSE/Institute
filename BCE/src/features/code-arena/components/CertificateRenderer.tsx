@@ -487,8 +487,8 @@ export default function CertificateRenderer({
                   <text x="0" y="4" textAnchor="middle" fill="#00f0ff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
                 </g>
 
-                <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">SMART LEARN</text>
-                <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || (isBattle ? 'OFFICIAL BATTLE CERTIFICATE' : isSheet ? 'OFFICIAL SHEET CERTIFICATE' : 'SMART LEARN ACADEMY')).toUpperCase()}</text>
+                <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">DEBUGGERZZ</text>
+                <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || (isBattle ? 'OFFICIAL BATTLE CERTIFICATE' : isSheet ? 'OFFICIAL SHEET CERTIFICATE' : 'DEBUGGERZZ ACADEMY')).toUpperCase()}</text>
               </g>
 
               {/* TOP RIGHT: Dynamic Immutable Certificate ID */}
@@ -781,7 +781,7 @@ export default function CertificateRenderer({
                 type="text"
                 value={organizerName}
                 onChange={(e) => setOrganizerName(e.target.value)}
-                placeholder="e.g. Smart Learn Code Arena"
+                placeholder="e.g. Debuggerzz Code Arena"
                 style={{
                   width: '100%',
                   padding: '8px 12px',

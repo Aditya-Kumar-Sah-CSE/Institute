@@ -192,7 +192,7 @@ export default function StorageUsageIndicator({
 
         {/* Subtext */}
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-          Smart Learn Files: <strong style={{ color: 'var(--text-primary)' }}>{fileCount} files</strong> ({appBytes})
+          Debuggerzz Files: <strong style={{ color: 'var(--text-primary)' }}>{fileCount} files</strong> ({appBytes})
         </div>
 
         {/* Progress Bar Container */}
@@ -423,7 +423,7 @@ export default function StorageUsageIndicator({
             <ol style={{ margin: 0, paddingLeft: '16px' }}>
               <li>Click <strong>Connect Google Drive</strong> below.</li>
               <li>Sign in to your Google account and grant permissions.</li>
-              <li>Smart Learn automatically creates your <strong>/Smart Learn/</strong> root folder.</li>
+              <li>Debuggerzz automatically creates your workspace folder inside Google Drive.</li>
               <li>Your files stay 100% private in your own Google Drive!</li>
             </ol>
           </div>

@@ -5,7 +5,7 @@ import type { GlobalPoll } from '@/features/polls/components/GlobalPollCard';
 import GlobalPollManager from '@/features/polls/components/GlobalPollManager';
 
 export const metadata = {
-  title: 'Global Polls | Smart Learning',
+  title: 'Global Polls | Debuggerzz',
 };
 
 export default async function PollsPage() {

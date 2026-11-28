@@ -30,10 +30,10 @@ export default function Footer({ companyName: initialCompanyName }: FooterProps)
         if (data?.company_name) {
           setCompanyName(data.company_name);
         } else {
-          setCompanyName('smart learn');
+          setCompanyName('Debuggerzz');
         }
       } catch (err) {
-        setCompanyName('smart learn');
+        setCompanyName('Debuggerzz');
       }
     };
 
@@ -45,7 +45,7 @@ export default function Footer({ companyName: initialCompanyName }: FooterProps)
     return null;
   }
 
-  const displayName = companyName || 'smart learn';
+  const displayName = companyName || 'Debuggerzz';
 
   return (
     <footer className="app-global-footer">

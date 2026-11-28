@@ -527,7 +527,7 @@ export default function SmartAgentDrawer() {
             <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  Smart Learn Agent
+                  Debuggerzz Agent
                 </h3>
 
                 {activeProvider ? (
@@ -926,7 +926,7 @@ export default function SmartAgentDrawer() {
           type="text"
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
-          placeholder="Ask Smart Learn anything..."
+          placeholder="Ask Debuggerzz AI anything..."
           disabled={isLoading || isListening || isTranscribing}
           style={{
             flex: 1,

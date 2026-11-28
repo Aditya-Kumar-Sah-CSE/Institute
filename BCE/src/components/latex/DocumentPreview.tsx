@@ -13,7 +13,7 @@ export default function DocumentPreview({ code }: DocumentPreviewProps) {
   const dateMatch = code.match(/\\date\{([^}]*)\}/);
 
   const title = titleMatch ? titleMatch[1] : 'LaTeX Document Preview';
-  const author = authorMatch ? authorMatch[1] : 'SkillArena LaTeX Engine';
+  const author = authorMatch ? authorMatch[1] : 'Debuggerzz LaTeX Engine';
   const date = dateMatch ? dateMatch[1] : new Date().toLocaleDateString();
 
   const sections: { title: string; body: string }[] = [];

@@ -203,7 +203,7 @@ export default function CourseCard({ course, progress, status, certificateId, in
       <Modal 
         isOpen={!!alertMessage} 
         onClose={() => setAlertMessage(null)} 
-        title="Smart Learning App"
+        title="Debuggerzz"
         size="sm"
       >
         <div style={{ padding: '1rem', textAlign: 'center' }}>

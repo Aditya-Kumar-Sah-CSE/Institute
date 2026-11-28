@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!userBYOK) {
       return NextResponse.json({
         success: false,
-        summary: previousSummary || 'Student is actively using Smart Learn for placement preparation.'
+        summary: previousSummary || 'Student is actively using Debuggerzz for placement preparation.'
       });
     }
 

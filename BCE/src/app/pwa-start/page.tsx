@@ -110,7 +110,7 @@ export default function PwaStartPage() {
       }}>
         <Image
           src="/icon-192x192.png"
-          alt="Smart Learn"
+          alt="Debuggerzz"
           width={96}
           height={96}
           priority
@@ -132,7 +132,7 @@ export default function PwaStartPage() {
         WebkitTextFillColor: 'transparent',
         textAlign: 'center'
       }}>
-        Smart Learn
+        Debuggerzz
       </h1>
 
       <p style={{

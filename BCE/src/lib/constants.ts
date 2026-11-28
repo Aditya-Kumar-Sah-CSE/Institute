@@ -56,7 +56,7 @@ export const DEFAULT_BADGES = [
   { name: '500 Club', icon: '🥇', description: '500 total coding problems solved', condition_type: '500_club', condition_value: 500 },
   { name: '1000 Club', icon: '🏆', description: '1000 total coding problems solved', condition_type: '1000_club', condition_value: 1000 },
   { name: 'DSA Master', icon: '🧠', description: 'Complete a major DSA Sheet', condition_type: 'dsa_master', condition_value: 1 },
-  { name: 'Multi-Platform Coder', icon: '🌐', description: 'Solve problems on Smart Learn, LeetCode, and CodeChef', condition_type: 'multi_platform', condition_value: 3 },
+  { name: 'Multi-Platform Coder', icon: '🌐', description: 'Solve problems on Debuggerzz, LeetCode, and CodeChef', condition_type: 'multi_platform', condition_value: 3 },
   { name: 'Monthly Champion', icon: '👑', description: 'Achieve Rank #1 overall in the Monthly Coding Champions', condition_type: 'monthly_champion', condition_value: 1 },
   { name: 'Contest Warrior', icon: '⚔️', description: 'Participate in 3 or more Coding Battles', condition_type: 'contest_warrior', condition_value: 3 },
   { name: 'Problem Hunter', icon: '🕵️', description: 'Solve at least 5 Easy, 5 Medium, and 5 Hard problems', condition_type: 'problem_hunter', condition_value: 5 },
@@ -65,7 +65,6 @@ export const DEFAULT_BADGES = [
 export const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: 'Dashboard' },
   { label: 'Courses', href: '/courses', icon: 'Courses' },
-  { label: 'My NPTEL Courses', href: '/student/nptel', icon: 'Courses' },
   { label: 'Code Arena', href: '/code-arena', icon: 'Code' },
   { label: 'Coding Sheets', href: '/code-arena/sheets', icon: 'Submissions' },
   { label: 'Compiler', href: '/code-arena/compiler', icon: 'Code' },

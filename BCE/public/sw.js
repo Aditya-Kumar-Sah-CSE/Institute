@@ -1,7 +1,7 @@
-const CACHE_VERSION = 'smartlearn-v15';
-const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
-const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
-const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
+const CACHE_VERSION = 'debuggerzz-v1';
+const CACHE_STATIC = `debuggerzz-static-${CACHE_VERSION}`;
+const CACHE_COURSE = `debuggerzz-course-${CACHE_VERSION}`;
+const CACHE_MEDIA = `debuggerzz-media-${CACHE_VERSION}`;
 const ALLOWED_CACHES = [CACHE_STATIC, CACHE_COURSE, CACHE_MEDIA];
 
 // Pre-cache core shell resources on install for sub-300ms instant open
@@ -10,11 +10,13 @@ const SHELL_ASSETS = [
   '/manifest.json',
   '/favicon.ico',
   '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/icon-512x512.png',
+  '/icon-maskable-192x192.png',
+  '/icon-maskable-512x512.png'
 ];
 
 // Offline fallback HTML
-const OFFLINE_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | Smart Learn</title><style>
+const OFFLINE_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | Debuggerzz</title><style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#0b0f19;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;text-align:center;padding:24px}
   h1{font-size:1.5rem;background:linear-gradient(to right,#00f2fe,#4facfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -22,7 +24,7 @@ const OFFLINE_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"
   button{margin-top:8px;padding:10px 24px;background:linear-gradient(to right,#00f2fe,#4facfe);border:none;border-radius:24px;color:#000;font-weight:700;cursor:pointer;font-size:1rem}
 </style></head><body>
   <div style="font-size:3rem">📡</div>
-  <h1>Smart Learn: You're Offline</h1>
+  <h1>Debuggerzz: You're Offline</h1>
   <p>Please check your internet connection to continue learning.</p>
   <button onclick="location.reload()">Retry Connection</button>
 </body></html>`;
@@ -54,7 +56,7 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((cacheNames) =>
         Promise.all(
           cacheNames.map((name) => {
-            if ((name.startsWith('smartlearn-') || name.startsWith('skillarena-')) && !ALLOWED_CACHES.includes(name)) {
+            if ((name.startsWith('smartlearn-') || name.startsWith('skillarena-') || name.startsWith('debuggerzz-')) && !ALLOWED_CACHES.includes(name)) {
               console.log(`PWA: Evicting obsolete cache: ${name}`);
               return caches.delete(name);
             }

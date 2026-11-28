@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import SQLEditor from '@/components/sql/SQLEditor';
 
 export const metadata = {
-  title: 'SQL Editor | SkillArena',
+  title: 'SQL Editor | Debuggerzz',
 };
 
 export default function SQLEditorPage() {

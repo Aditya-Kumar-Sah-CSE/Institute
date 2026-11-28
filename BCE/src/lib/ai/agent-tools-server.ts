@@ -580,7 +580,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
       return {
         success: true,
-        message: 'Ye information abhi Smart Learn me available nahi hai.'
+        message: 'Ye information abhi Debuggerzz me available nahi hai.'
       };
     }
   },
@@ -985,7 +985,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
     },
     examples: ['google pe search karo', 'search web for react hooks'],
     execute: async (args) => {
-      const q = args.query || 'Smart Learn';
+      const q = args.query || 'Debuggerzz';
       const encoded = encodeURIComponent(q);
       return {
         success: true,
@@ -1021,7 +1021,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
 
   searchProgramSeats: {
     name: 'searchProgramSeats',
-    description: 'Query seat availability or program details for degrees like B.Sc, B.Tech, MCA in Smart Learn. Never invent fake seat numbers.',
+    description: 'Query seat availability or program details for degrees like B.Sc, B.Tech, MCA in Debuggerzz. Never invent fake seat numbers.',
     category: 'COURSES',
     riskLevel: 'LOW',
     parameters: {
@@ -1043,14 +1043,14 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
       if (matchedCourses && matchedCourses.length > 0) {
         return {
           success: true,
-          message: `Smart Learn me ${prog} se related ${matchedCourses.length} active courses available hain: ${matchedCourses.map((c: any) => c.title).join(', ')}.`,
+          message: `Debuggerzz me ${prog} se related ${matchedCourses.length} active courses available hain: ${matchedCourses.map((c: any) => c.title).join(', ')}.`,
           url: '/courses'
         };
       }
 
       return {
         success: true,
-        message: `Smart Learn me abhi ${prog} seat availability ka specific data available nahi hai. Aap active courses section me enrolled subjects dekh sakte hain.`,
+        message: `Debuggerzz me abhi ${prog} seat availability ka specific data available nahi hai. Aap active courses section me enrolled subjects dekh sakte hain.`,
         url: '/courses'
       };
     }
@@ -2103,7 +2103,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
         }
         return {
           success: false,
-          message: adapterRes.message || 'FAILED: External browser automation is not available. Ensure Smart Learn Companion is running (npm run companion).',
+          message: adapterRes.message || 'FAILED: External browser automation is not available. Ensure Debuggerzz Companion is running (npm run companion).',
           data: adapterRes.data
         };
       }
@@ -2273,16 +2273,16 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
 
       return {
         success: true,
-        message: `📋 **Content Outputted to ${args.targetApp || 'Smart Learn Chat'}**:\n\`\`\`\n${text.slice(0, 500)}${text.length > 500 ? '...' : ''}\n\`\`\``,
+        message: `📋 **Content Outputted to ${args.targetApp || 'Debuggerzz Chat'}**:\n\`\`\`\n${text.slice(0, 500)}${text.length > 500 ? '...' : ''}\n\`\`\``,
         externalUrl: target.includes('gpt') ? 'https://chatgpt.com' : undefined,
-        data: { pastedText: text, target: args.targetApp || 'Smart Learn Chat', verified: false }
+        data: { pastedText: text, target: args.targetApp || 'Debuggerzz Chat', verified: false }
       };
     }
   },
 
   ping_companion: {
     name: 'ping_companion',
-    description: 'Ping Smart Learn Companion bridge to verify connection status.',
+    description: 'Ping Debuggerzz Companion bridge to verify connection status.',
     category: 'SYSTEM',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },
@@ -2674,7 +2674,7 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
 
   inspectLocalComputer: {
     name: 'inspectLocalComputer',
-    description: 'Inspect the connected local Smart Learn Computer Companion and its explicitly enabled capabilities. Does not read the screen or control input unless a local adapter is configured.',
+    description: 'Inspect the connected local Debuggerzz Computer Companion and its explicitly enabled capabilities. Does not read the screen or control input unless a local adapter is configured.',
     category: 'SCREEN',
     riskLevel: 'LOW',
     parameters: { type: 'object', properties: {} },

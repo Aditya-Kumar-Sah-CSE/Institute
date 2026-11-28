@@ -12,7 +12,7 @@ const LEVELS = [
   { id: 7, title: 'Chaos Moving', difficulty: 'Expert', ballSpeed: 9.5, paddleWidth: 130, rows: 6, cols: 10, lives: 3, xpReward: 70, targetScore: 8000 },
   { id: 8, title: 'Expert Arena', difficulty: 'Expert', ballSpeed: 10.0, paddleWidth: 120, rows: 6, cols: 11, lives: 2, xpReward: 85, targetScore: 10000 },
   { id: 9, title: 'Master Mind', difficulty: 'Master', ballSpeed: 10.5, paddleWidth: 110, rows: 7, cols: 11, lives: 2, xpReward: 100, targetScore: 12000 },
-  { id: 10, title: 'Smart Learn Champion', difficulty: 'Legend', ballSpeed: 11.0, paddleWidth: 100, rows: 7, cols: 12, lives: 2, xpReward: 150, targetScore: 15000 }, // Boss
+  { id: 10, title: 'Debuggerzz Champion', difficulty: 'Legend', ballSpeed: 11.0, paddleWidth: 100, rows: 7, cols: 12, lives: 2, xpReward: 150, targetScore: 15000 }, // Boss
 ];
 
 export async function POST(req: Request) {

@@ -43,7 +43,7 @@ export async function completeCourseAndIssueCertificates(courseId: string) {
       .select('company_name')
       .single();
     
-    const companyName = settings?.company_name || 'Smart Learning APP';
+    const companyName = settings?.company_name || 'Debuggerzz';
 
     // Get all enrolled students (approved)
     const { data: enrollments } = await supabase

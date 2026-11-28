@@ -37,11 +37,11 @@ export default function VoiceControls({
           <button
             className="mic-button listening"
             onClick={handleOpenSmartAgentMic}
-            title="Open Smart Learn AI Agent (Unified Voice & AI Control)"
+            title="Open Debuggerzz AI Agent (Unified Voice & AI Control)"
             type="button"
           >
             <Bot className="mic-icon animate-pulse" />
-            <span>Smart Learn AI Agent</span>
+            <span>Debuggerzz AI Agent</span>
           </button>
         </div>
 
@@ -136,7 +136,7 @@ export default function VoiceControls({
       {showCheatSheet && (
         <div className="voice-cheatsheet-modal">
           <div className="cheatsheet-header">
-            <h3>🎙️ Smart Learn AI Agent Voice Commands (Hinglish & English)</h3>
+            <h3>🎙️ Debuggerzz AI Agent Voice Commands (Hinglish & English)</h3>
             <button onClick={() => setShowCheatSheet(false)} type="button">×</button>
           </div>
           <div className="cheatsheet-grid">

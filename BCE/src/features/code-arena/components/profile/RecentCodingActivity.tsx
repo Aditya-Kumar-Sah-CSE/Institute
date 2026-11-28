@@ -32,7 +32,7 @@ export default function RecentCodingActivity({
     return (bceRecent || []).map((r: any) => ({
       id: `bce-${r.id}`,
       platform: 'SL' as const,
-      platformFull: 'Smart Learn',
+      platformFull: 'Debuggerzz',
       problemName: r.coding_problems?.title || r.problem_id || 'Practice Problem',
       verdict: r.status === 'ACCEPTED' ? 'OK' : r.status,
       language: r.language || 'Code',

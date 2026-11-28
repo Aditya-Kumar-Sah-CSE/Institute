@@ -166,7 +166,7 @@ export async function callLocalComputer(request: LocalComputerRequest): Promise<
       requestId: reqId,
       stage: 'COMPANION_HEALTH_CHECK',
       companionConnected: false,
-      message: 'FAILED: Smart Learn Companion is offline or unreachable on port 43127.'
+      message: 'FAILED: Debuggerzz Companion is offline or unreachable on port 43127.'
     };
   }
 

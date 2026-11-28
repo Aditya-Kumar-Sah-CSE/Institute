@@ -6,9 +6,10 @@ export default async function CoursesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Only select card-level columns for fast load — no heavy content/modules
   const coursesQuery = supabase
     .from('courses')
-    .select('*, profiles!courses_created_by_fkey(name)')
+    .select('id, title, description, thumbnail_url, difficulty, category, is_published, is_deleted, created_at, created_by, instructor_name, co_instructors, tags, total_xp, lesson_count, profiles!courses_created_by_fkey(name)')
     .eq('is_published', true)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
@@ -29,17 +30,17 @@ export default async function CoursesPage() {
     certificatesQuery
   ]);
 
-  let courses = coursesRes.data;
+  let courses: any[] | null = coursesRes.data as any;
 
   // Fallback: Query without join in case foreign key relationship alias cache fails
   if (!courses || courses.length === 0) {
     const { data: rawCourses } = await supabase
       .from('courses')
-      .select('*')
+      .select('id, title, description, thumbnail_url, difficulty, category, is_published, is_deleted, created_at, created_by, instructor_name, co_instructors, tags, total_xp, lesson_count')
       .eq('is_published', true)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false });
-    courses = rawCourses;
+    courses = rawCourses as any;
   }
 
   const enrollments = enrollmentsRes?.data;

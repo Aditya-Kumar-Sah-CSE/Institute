@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import AISettingsClient from '@/features/ai-settings/components/AISettingsClient';
 
 export const metadata = {
-  title: 'AI Agent Settings — Smart Learn',
+  title: 'AI Agent Settings — Debuggerzz',
   description: 'Manage your personal Google Gemini and xAI Grok API keys securely.'
 };
 

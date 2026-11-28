@@ -18,7 +18,7 @@ export const LATEX_TEMPLATES: LatexTemplate[] = [
 \\usepackage{amsmath, amssymb}
 
 \\title{Advanced Calculus \\& Integration Notes}
-\\author{SkillArena Academic Hub}
+\\author{Debuggerzz Academic Hub}
 \\date{\\today}
 
 \\begin{document}
@@ -53,7 +53,7 @@ f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x - a)^n
 \\usepackage{amsmath, amssymb}
 
 \\title{Linear Algebra \\& Matrix Operations}
-\\author{SkillArena Math Dept}
+\\author{Debuggerzz Math Dept}
 \\date{\\today}
 
 \\begin{document}
@@ -233,7 +233,7 @@ aA + bB \\rightleftharpoons cC + dD, \\quad K_c = \\frac{[C]^c [D]^d}{[A]^a [B]^
 \\begin{itemize}
     \\item \\textbf{Email:} research@institution.edu
     \\item \\textbf{Department:} Computer Science \\& Applied Mathematics
-    \\item \\textbf{Website:} https://skillarena.edu/profile
+    \\item \\textbf{Website:} https://debuggerzz.in/profile
 \\end{itemize}
 
 \\section*{Education}

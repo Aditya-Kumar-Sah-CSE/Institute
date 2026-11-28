@@ -54,7 +54,7 @@ export async function generateMetadata({
 
   if (!sheet) {
     return {
-      title: 'Coding Sheet Not Found | Smart Learn',
+      title: 'Coding Sheet Not Found | Debuggerzz',
       description: 'The requested coding sheet does not exist or is private.',
       robots: {
         index: false,
@@ -75,8 +75,8 @@ export async function generateMetadata({
       : (Array.isArray(sheet.coding_sheet_problems) ? (sheet.coding_sheet_problems[0]?.count || 0) : 0);
   const creatorName = Array.isArray(sheet.profiles) ? sheet.profiles[0]?.name : sheet.profiles?.name;
   const curator = creatorName ? ` by ${creatorName}` : '';
-  const title = `${sheet.title} (${problemCount} Problems) | Smart Learn Coding Sheet`;
-  const description = sheet.description || `Practice curated coding problems${curator} on Smart Learn Code Arena.`;
+  const title = `${sheet.title} (${problemCount} Problems) | Debuggerzz Coding Sheet`;
+  const description = sheet.description || `Practice curated coding problems${curator} on Debuggerzz Code Arena.`;
   const canonicalUrl = `${baseUrl}/share/sheet/${sheet.slug || sheet.id}`;
 
   return {
@@ -94,7 +94,7 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       type: 'website',
-      siteName: 'Smart Learn Code Arena',
+      siteName: 'Debuggerzz Code Arena',
     },
     twitter: {
       card: 'summary_large_image',

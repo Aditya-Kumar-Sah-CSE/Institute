@@ -243,7 +243,7 @@ export default function LearningIntelligenceClient({ initialProfile }: LearningI
           )}
 
           <p className="text-secondary" style={{ margin: 0, fontSize: 'var(--text-xs)' }}>
-            Readiness and skill mastery are left unscored until Smart Learn has a validated rubric and stored mastery data.
+            Readiness and skill mastery are left unscored until Debuggerzz has a validated rubric and stored mastery data.
           </p>
         </div>
       )}

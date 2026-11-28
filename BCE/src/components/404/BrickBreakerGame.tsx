@@ -890,14 +890,14 @@ export default function BrickBreakerGame() {
           <div className="not-found-nav-logo">
             <span style={{ fontWeight: 900, color: '#fff', fontSize: '15px' }}>⚡</span>
           </div>
-          <span className="not-found-nav-title">Smart Learn</span>
+          <span className="not-found-nav-title">Debuggerzz</span>
         </Link>
 
         <Link href="/courses" className="not-found-nav-link">
           Courses
         </Link>
 
-        <span className="not-found-nav-center">Smart Learn</span>
+        <span className="not-found-nav-center">Debuggerzz</span>
 
         <Link href="/dashboard" className="not-found-nav-btn">
           <LayoutDashboard size={14} /> Dashboard

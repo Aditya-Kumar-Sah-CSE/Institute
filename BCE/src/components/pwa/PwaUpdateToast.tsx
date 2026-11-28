@@ -66,7 +66,7 @@ export default function PwaUpdateToast() {
           New Version Available!
         </span>
         <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-          An update for Smart Learning is ready to install.
+          An update for Debuggerzz is ready to install.
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>

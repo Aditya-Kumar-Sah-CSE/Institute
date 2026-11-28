@@ -32,7 +32,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       {/* HEADER & TITLE */}
       <div style={{ marginBottom: 'var(--space-md)' }}>
         <div style={{ fontSize: '12px', color: 'var(--neon-cyan)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-          <span>Smart Learn</span>
+          <span>Debuggerzz</span>
           <span>→</span>
           <span style={{ color: 'var(--text-primary)' }}>Settings</span>
         </div>

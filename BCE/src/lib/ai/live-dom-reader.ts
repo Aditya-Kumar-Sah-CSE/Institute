@@ -162,7 +162,7 @@ export function extractLiveDOMContext(overrideRoute?: string, forceRefresh = fal
     }
 
     // 1. Page Title & Headings
-    const docTitle = document.title || 'Smart Learn Platform';
+    const docTitle = document.title || 'Debuggerzz';
     const mainHeadings: string[] = [];
     const headingElements = document.querySelectorAll(
       'h1, h2, h3, h4, h5, h6, .section-title, .stat-card-value, .stat-card-label, [data-heading], [class*="title"], [class*="heading"]'

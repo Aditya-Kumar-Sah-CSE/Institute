@@ -205,7 +205,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   const [messages, setMessages] = useState<SmartAgentMessage[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm **Smart Learn AI Agent**\n\nYour continuous learning mentor. Powered by real-time voice, live page awareness, and instant verification!\n\nClick the mic button once to talk hands-free continuously.`,
+      content: `Hi! I'm **Debuggerzz AI Agent**\n\nYour continuous learning mentor. Powered by real-time voice, live page awareness, and instant verification!\n\nClick the mic button once to talk hands-free continuously.`,
       actions: [
         { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
         { label: 'Explore Courses', url: '/courses' }
@@ -288,7 +288,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
       setMessages([
         {
           role: 'assistant',
-          content: `Welcome back to **Smart Learn AI Agent**\n\nI remember our previous conversation:\n_"${shortSummary}"_\n\nHow would you like to continue today?`,
+          content: `Welcome back to **Debuggerzz AI Agent**\n\nI remember our previous conversation:\n_"${shortSummary}"_\n\nHow would you like to continue today?`,
           actions: [
             { label: 'Continue Practice', url: '/code-arena/sheets' },
             { label: 'View Dashboard', url: '/dashboard' }
@@ -723,7 +723,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
     setMessages([
       {
         role: 'assistant',
-        content: `Conversation restarted. How can I help you in Smart Learn today?`,
+        content: `Conversation restarted. How can I help you in Debuggerzz today?`,
         actions: [
           { label: 'Open DSA Sheets', url: '/code-arena/sheets' },
           { label: 'Explore Courses', url: '/courses' }
@@ -742,7 +742,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
 
     const t = currentPromptText.toLowerCase();
     if (t.includes('search') || t.includes('youtube') || t.includes('yt') || t.includes('gpt')) {
-      return 'Searching Smart Learn & External Sources...';
+      return 'Searching Debuggerzz & External Sources...';
     }
     if (t.includes('open') || t.includes('kholo') || t.includes('dsa') || t.includes('course') || t.includes('problem')) {
       return 'Opening page...';

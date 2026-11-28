@@ -136,10 +136,10 @@ export default function PracticeArenaHeader({
             type="button"
             onClick={handleAskSmartLearnAI}
             className="header-action-btn btn-ask-smartlearn"
-            title="Open Smart Learn AI interactive assistant"
+            title="Open Debuggerzz AI interactive assistant"
           >
             <Brain size={13} style={{ color: 'var(--neon-cyan)' }} />
-            <span>Ask Smart Learn AI</span>
+            <span>Ask Debuggerzz AI</span>
           </button>
 
           {/* Text Solution button if available */}

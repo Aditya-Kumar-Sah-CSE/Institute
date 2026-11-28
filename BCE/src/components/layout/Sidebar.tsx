@@ -22,7 +22,6 @@ const ITEM_GROUPS: Record<string, string> = {
   
   'Courses': 'Study',
   'My Courses': 'Study',
-  'My NPTEL Courses': 'Study',
   'NPTEL Management': 'Study',
   'Leaderboard': 'Study',
   'Batch Doubts': 'Study',
@@ -244,8 +243,8 @@ export default function Sidebar({ profile, isAdmin = false, roleView, isSuperAdm
     >
       <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }} suppressHydrationWarning>
         <Link href={logoHref} className="sidebar-logo">
-          <span className="sidebar-logo-icon text-neon-cyan">{getIcon('Building', { className: 'w-6 h-6' })}</span>
-          <span className="sidebar-logo-text">Smart Learning</span>
+          <img src="/icon-192x192.png" alt="Debuggerzz" width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '9999px', objectFit: 'cover', flexShrink: 0 }} />
+          <span className="sidebar-logo-text">Debuggerzz</span>
         </Link>
         <button 
           suppressHydrationWarning

@@ -133,14 +133,14 @@ export default function SignupForm({ companyName, logoUrl, tenantId, baseUrl }: 
           ← Home
         </Link>
         <div className="auth-header">
-          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
+          <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '9999px', display: 'inline-block' }}>
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" style={{ width: '56px', height: '56px', borderRadius: '9999px', objectFit: 'cover', border: '1.5px solid rgba(56, 189, 248, 0.35)' }} />
             ) : (
-              <LogoAvatar name={companyName || 'Smart Learning'} />
+              <LogoAvatar name={companyName || 'Debuggerzz'} />
             )}
           </span>
-          <h1 className="auth-title">{companyName || 'Smart Hybrid Learning'}</h1>
+          <h1 className="auth-title">{companyName || 'Debuggerzz'}</h1>
           <p className="auth-subtitle">Start your journey</p>
         </div>
 

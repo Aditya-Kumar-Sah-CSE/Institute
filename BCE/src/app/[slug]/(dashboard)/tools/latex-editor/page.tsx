@@ -3,7 +3,7 @@ import VoiceLatexEditor from '@/components/latex/VoiceLatexEditor';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'LaTeX Workspace Tool | SkillArena Tenant Dashboard',
+  title: 'LaTeX Workspace Tool | Debuggerzz',
   description: 'Voice-controlled LaTeX Workspace for courses, assignments, and exam paper creation.',
 };
 

@@ -98,7 +98,7 @@ export default function GamesLobbyPage() {
       {/* Hero Header */}
       <div className="games-hero">
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.25)', padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800, color: '#00f0ff', marginBottom: 12 }}>
-          <Gamepad2 size={14} /> SMART LEARN ARCADE
+          <Gamepad2 size={14} /> DEBUGGERZZ ARCADE
         </div>
         <h1 className="games-hero-title">Multiplayer Games Hub</h1>
         <p className="games-hero-subtitle">

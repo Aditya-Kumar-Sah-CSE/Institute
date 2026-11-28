@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     if (typeof followUpQuestion === 'string' && followUpQuestion.trim().length > 0) {
       const q = followUpQuestion.trim();
       const aiCreds = await getAvailableAiCredentials(user.id);
-      const qSystem = `You are Smart Learn AI, a concise competitive programming mentor.
+      const qSystem = `You are Debuggerzz AI, a concise competitive programming mentor.
 Answer the student's follow-up cross-question about their ACCEPTED code in 2-4 crisp bullet points or <= 85 words. Be direct, reference their exact code/complexity, and stay practical.`;
       const qPrompt = `Problem: ${problemTitle} (${language})
 Stats: ${runtimeMs}ms, ${memoryMb}MB, ${passedTests}/${totalTests} passed

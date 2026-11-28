@@ -174,7 +174,7 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
             Official Verification Successful
           </div>
           <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0, color: '#ffffff' }}>Verified Certificate</h1>
-          <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '4px', fontWeight: 600 }}>SMART LEARN PLATFORM</div>
+          <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '4px', fontWeight: 600 }}>DEBUGGERZZ PLATFORM</div>
         </div>
 
         {/* Certificate Details */}
@@ -241,7 +241,7 @@ export default async function VerifyCertificatePage({ params }: VerifyProps) {
         {/* Footer info */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>
-            Issued by <strong style={{ color: '#94a3b8' }}>{cert.company_name || 'Smart Learn'}</strong>
+            Issued by <strong style={{ color: '#94a3b8' }}>{cert.company_name || 'Debuggerzz'}</strong>
           </div>
           <Link href="/" style={{
             fontSize: '13px', color: 'var(--neon-cyan)', textDecoration: 'none', fontWeight: 600,

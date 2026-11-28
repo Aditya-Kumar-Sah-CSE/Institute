@@ -81,7 +81,7 @@ export default async function CertificatePage({
       total_tasks: 5,
       accuracy: 85,
       duration_minutes: 42,
-      company_name: 'Smart Learn Institute',
+      company_name: 'Debuggerzz',
       certificate_code: 'PREVIEW-DUMMY-CERTIFICATE',
       signature_type: 'default',
       signature_name: 'Aditya Kumar Sah',

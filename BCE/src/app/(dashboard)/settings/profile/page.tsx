@@ -9,7 +9,7 @@ import BasicInfoEdit from '@/app/(dashboard)/profile/components/BasicInfoEdit';
 import { User, Shield, ExternalLink } from 'lucide-react';
 
 export const metadata = {
-  title: 'Profile & Account Settings — Smart Learn',
+  title: 'Profile & Account Settings — Debuggerzz',
   description: 'Manage your personal profile and account credentials.'
 };
 
@@ -32,7 +32,7 @@ export default async function SettingsProfilePage() {
               Account & Profile Information
             </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Your basic profile information visible across Smart Learn.
+              Your basic profile information visible across Debuggerzz.
             </p>
           </div>
           <Link href="/profile">

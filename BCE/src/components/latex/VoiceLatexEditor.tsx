@@ -51,7 +51,7 @@ export default function VoiceLatexEditor() {
     setSyntaxErrors(errors);
   }, [code]);
 
-  // Integration with Existing Smart Learn AI Agent via Custom Event Listener
+  // Integration with Existing Debuggerzz AI Agent via Custom Event Listener
   useEffect(() => {
     const handleAgentLatexEvent = (e: Event) => {
       const customEvt = e as CustomEvent;
@@ -66,7 +66,7 @@ export default function VoiceLatexEditor() {
           setSelectedTemplateId(tpl.id);
           setCode(tpl.code);
           updateHistoryState(tpl.code, tpl.id, `Existing Agent Loaded Template: ${tpl.name}`);
-          setAgentFeedback(`Smart Learn AI Agent switched template to "${tpl.name}".`);
+          setAgentFeedback(`Debuggerzz AI Agent switched template to "${tpl.name}".`);
         }
       } else if (detail.newTitle || detail.sectionTitle) {
         const titleToUse = detail.newTitle || detail.sectionTitle;
@@ -74,14 +74,14 @@ export default function VoiceLatexEditor() {
         if (updated !== initialCode) {
           setCode(updated);
           updateHistoryState(updated, selectedTemplateId, `Existing Agent Replaced Title: ${titleToUse}`);
-          setAgentFeedback(`Smart Learn AI Agent updated title to "${titleToUse}".`);
+          setAgentFeedback(`Debuggerzz AI Agent updated title to "${titleToUse}".`);
         }
       } else if (detail.action === 'make_symmetric') {
         const symCode = makeCurrentMatrixSymmetric(code);
         if (symCode !== initialCode) {
           setCode(symCode);
           updateHistoryState(symCode, selectedTemplateId, `Existing Agent Made Matrix Symmetric`);
-          setAgentFeedback('Smart Learn AI Agent transformed matrix to symmetric.');
+          setAgentFeedback('Debuggerzz AI Agent transformed matrix to symmetric.');
         }
       } else if (detail.action === 'undo') {
         handleUndo();
@@ -96,7 +96,7 @@ export default function VoiceLatexEditor() {
           setCode(newCode);
           setCursorPos(newCursorPos);
           updateHistoryState(newCode, selectedTemplateId, `Existing Agent Inserted Snippet`);
-          setAgentFeedback('Smart Learn AI Agent inserted LaTeX code snippet.');
+          setAgentFeedback('Debuggerzz AI Agent inserted LaTeX code snippet.');
         }
       }
     };
@@ -169,7 +169,7 @@ export default function VoiceLatexEditor() {
     const parsed = parseVoiceIntent(rawTranscript);
     const initialCode = code;
 
-    // Dispatch event so existing Smart Learn AI Agent context is notified
+    // Dispatch event so existing Debuggerzz AI Agent context is notified
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('bce-update-latex', {
         detail: {

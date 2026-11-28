@@ -903,7 +903,7 @@ export default function BattleArenaClient({
                       fontSize: '16px',
                       boxShadow: '0 0 12px rgba(0, 240, 255, 0.25)',
                     }}
-                    title="Smart Learn"
+                    title="Debuggerzz"
                   >
                     &lt;&gt;
                   </div>
@@ -1050,7 +1050,7 @@ export default function BattleArenaClient({
                       <text x="0" y="4" textAnchor="middle" fill="#00f0ff" fontSize="10" fontWeight="900" fontFamily="monospace">&lt;&gt;</text>
                     </g>
 
-                    <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">SMART LEARN</text>
+                    <text x="0" y="8" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" letterSpacing="4">DEBUGGERZZ</text>
                     <text x="0" y="28" textAnchor="middle" fill="#38bdf8" fontSize="12" fontWeight="800" letterSpacing="3">{(organizerName || 'OFFICIAL BATTLE CERTIFICATE').toUpperCase()}</text>
                   </g>
 

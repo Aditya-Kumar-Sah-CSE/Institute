@@ -4,7 +4,7 @@ import NoticeBoard from '@/features/notices/components/NoticeBoard';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
 
 export const metadata = {
-  title: 'Notices | Smart Learning',
+  title: 'Notices | Debuggerzz',
 };
 
 export default async function NoticesPage() {

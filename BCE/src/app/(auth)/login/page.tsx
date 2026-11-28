@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentTenant } from '@/lib/tenant';
 
 export const metadata: Metadata = {
-  title: 'Login | Smart Learning',
-  description: 'Sign in to Smart Learning and continue your journey.',
+  title: 'Login | Debuggerzz',
+  description: 'Sign in to Debuggerzz and continue your journey.',
 };
 
 export default async function LoginPage() {

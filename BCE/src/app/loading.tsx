@@ -68,7 +68,7 @@ export default function GlobalLoading() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/icon-192x192.png"
-          alt="App Logo"
+          alt="Debuggerzz Logo"
           width={120}
           height={120}
           style={{ objectFit: 'cover', borderRadius: '9999px', zIndex: 2, position: 'relative', width: '100%', height: '100%' }}
@@ -85,7 +85,7 @@ export default function GlobalLoading() {
           WebkitTextFillColor: 'transparent',
           letterSpacing: '1px'
         }}>
-          Smart Learn
+          Debuggerzz
         </h2>
 
         {/* Normal bounce-dot spinner — hidden once recovery kicks in */}

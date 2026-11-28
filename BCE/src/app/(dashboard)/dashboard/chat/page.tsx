@@ -1,7 +1,7 @@
 import ChatInterface from '@/features/chat/components/ChatInterface';
 
 export const metadata = {
-  title: 'Campus Chat | SkillArena',
+  title: 'Campus Chat | Debuggerzz',
 };
 
 export default function ChatPage() {

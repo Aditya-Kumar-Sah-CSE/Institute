@@ -119,7 +119,7 @@ export async function runSmartAgent(params: {
 
   for (const { instance: providerInstance, name: providerName } of providersToTry) {
     try {
-      const systemPrompt = `You are "Smart Learn Personal Assistant", a fast, natural, friendly personal learning guide on Smart Learn.
+      const systemPrompt = `You are "Debuggerzz AI Assistant", a fast, natural, friendly personal learning guide on Debuggerzz.
 User Authentication Status: ${isGuest ? 'GUEST' : 'AUTHENTICATED'} (User Role: ${userRole}, Provider: ${providerName.toUpperCase()})
 LIVE PAGE CONTEXT: ${safeStringify(agentContext)}
 
@@ -266,8 +266,8 @@ async function resolveFallbackAgentCommand(
     return {
       success: true,
       message: isHinglish
-        ? 'Namaste! Main aapka Smart Learn AI Assistant hoon. Padhai shuru karne ke liye please login kijiye.'
-        : 'Hello! I am your Smart Learn AI Assistant. Please log in to access your learning dashboard.'
+        ? 'Namaste! Main aapka Debuggerzz AI Assistant hoon. Padhai shuru karne ke liye please login kijiye.'
+        : 'Hello! I am your Debuggerzz AI Assistant. Please log in to access your learning dashboard.'
     };
   }
 
@@ -295,7 +295,7 @@ async function resolveFallbackAgentCommand(
   return {
     success: true,
     message: isHinglish
-      ? 'Namaste! Main aapka Smart Learn AI Assistant hoon. Main aapki DSA questions, courses, routine, aur learning score me kaise madad kar sakta hoon?'
-      : 'Hello! I am your Smart Learn AI Assistant. How can I help you with your DSA problems, courses, routine, or learning progress today?'
+      ? 'Namaste! Main aapka Debuggerzz AI Assistant hoon. Main aapki DSA questions, courses, routine, aur learning score me kaise madad kar sakta hoon?'
+      : 'Hello! I am your Debuggerzz AI Assistant. How can I help you with your DSA problems, courses, routine, or learning progress today?'
   };
 }

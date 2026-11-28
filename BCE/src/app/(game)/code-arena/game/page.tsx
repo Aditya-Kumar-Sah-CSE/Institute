@@ -53,7 +53,7 @@ const LEVELS: GameLevel[] = [
   { id: 7, title: 'Chaos Moving', difficulty: 'Expert', ballSpeed: 9.0, paddleWidth: 130, rows: 6, cols: 10, lives: 3, xpReward: 70, targetScore: 8000, brickColors: ['#ec4899', '#f43f5e', '#ef4444', '#10b981', '#6366f1', '#06b6d4'] },
   { id: 8, title: 'Expert Arena', difficulty: 'Expert', ballSpeed: 9.5, paddleWidth: 120, rows: 6, cols: 11, lives: 2, xpReward: 85, targetScore: 10000, brickColors: ['#ef4444', '#f59e0b', '#3b82f6', '#a855f7', '#06b6d4', '#4ade80'] },
   { id: 9, title: 'Master Mind', difficulty: 'Master', ballSpeed: 10.0, paddleWidth: 110, rows: 7, cols: 11, lives: 2, xpReward: 100, targetScore: 12000, brickColors: ['#ef4444', '#f43f5e', '#ec4899', '#a855f7', '#6366f1', '#3b82f6', '#06b6d4'] },
-  { id: 10, title: 'Smart Learn Overlord', difficulty: 'Legend', ballSpeed: 10.5, paddleWidth: 100, rows: 7, cols: 12, lives: 2, xpReward: 150, targetScore: 16000, brickColors: ['#3b82f6', '#a855f7', '#ef4444', '#f59e0b', '#10b981', '#ec4899', '#06b6d4'] }, // Boss Level
+  { id: 10, title: 'Debuggerzz Overlord', difficulty: 'Legend', ballSpeed: 10.5, paddleWidth: 100, rows: 7, cols: 12, lives: 2, xpReward: 150, targetScore: 16000, brickColors: ['#3b82f6', '#a855f7', '#ef4444', '#f59e0b', '#10b981', '#ec4899', '#06b6d4'] }, // Boss Level
 ];
 
 // --- VIRTUAL GAME RESOLUTION ---
@@ -3310,7 +3310,7 @@ export default function GamePage() {
       {/* Footer Quote */}
       {screen !== 'PLAYING' && screen !== 'PAUSED' && (
         <footer style={{ textAlign: 'center', padding: '16px 20px', fontSize: '10px', color: '#475569', borderTop: '1px solid rgba(255, 255, 255, 0.02)', flexShrink: 0 }}>
-          <span>Smart Learn Brick Breaker Challenge • Retro Arcade Engine v3.0 • 60 FPS Secure Canvas Physics</span>
+          <span>Debuggerzz Brick Breaker Challenge • Retro Arcade Engine v3.0 • 60 FPS Secure Canvas Physics</span>
         </footer>
       )}
     </div>

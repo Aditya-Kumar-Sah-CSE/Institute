@@ -155,7 +155,7 @@ export class AgentOrchestrator {
     }
 
     // 8. Run the full Smart Learn compiler after the fast diagnostic pass.
-    notify('compilation', 'Running Smart Learn production compiler', 'in_progress');
+    notify('compilation', 'Running Debuggerzz production compiler', 'in_progress');
     const buildResult = await CompilerBridge.compile();
     if (!buildResult.success) {
       notify('compilation', 'Production compiler failed; rolling back checkpoint', 'failed', buildResult.rawOutput.slice(-2000));
@@ -169,7 +169,7 @@ export class AgentOrchestrator {
         `Production build failed: ${buildResult.diagnostics.map(d => d.message).join('; ') || buildResult.rawOutput.slice(-1000)}`
       );
     }
-    notify('compilation', 'Smart Learn production compiler passed', 'completed');
+    notify('compilation', 'Debuggerzz production compiler passed', 'completed');
 
     // 9. Browser verification is completed client-side after navigation when the API is called from the drawer.
     notify('browser_verification', `Verifying target route ${targetRoute} and DOM elements`, 'in_progress');

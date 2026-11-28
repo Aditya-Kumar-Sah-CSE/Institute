@@ -6,8 +6,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import '@/app/Landing.css';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Smart Learn',
-  description: 'Privacy Policy for the Smart Learn student, instructor, and institution platform.',
+  title: 'Privacy Policy | Debuggerzz',
+  description: 'Privacy Policy for the Debuggerzz student, instructor, and institution platform.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -19,14 +19,14 @@ export default function PrivacyPolicyPage() {
       <header className="landing-nav">
         <Link href="/" className="landing-logo" style={{ display: 'flex', alignItems: 'center', background: 'transparent' }}>
           <Image 
-            src="/images/smart_learning%20logo.png" 
+            src="/images/debuggerzz-logo.png" 
             alt="Company Logo" 
             width={40} 
             height={40} 
             style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '9999px' }}
             unoptimized
           />
-          <span className="logo-text" style={{ marginLeft: '10px' }}>Smart Learn</span>
+          <span className="logo-text" style={{ marginLeft: '10px' }}>Debuggerzz</span>
         </Link>
         <div className="landing-nav-actions">
           <ThemeToggle />
@@ -53,7 +53,7 @@ export default function PrivacyPolicyPage() {
                 1. Introduction
               </h2>
               <p>
-                Smart Learn is an educational and coding platform designed to provide learning resources, coding practice, user profiles, courses, badges, certificates, competitions, and related educational features. We respect your privacy and are committed to protecting the personal information you share with us. This Privacy Policy explains how we collect, use, store, and share information when you access or use our platform.
+                Debuggerzz is an educational and coding platform designed to provide learning resources, coding practice, user profiles, courses, badges, certificates, competitions, and related educational features. We respect your privacy and are committed to protecting the personal information you share with us. This Privacy Policy explains how we collect, use, store, and share information when you access or use our platform.
               </p>
             </section>
 
@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
                 2. Information We Collect
               </h2>
               <p>
-                We only collect information that is necessary to provide the services offered by Smart Learn. This may include:
+                We only collect information that is necessary to provide the services offered by Debuggerzz. This may include:
               </p>
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li><strong>Account Information:</strong> Name, email address, profile photo, and password when you register an account.</li>
@@ -82,7 +82,7 @@ export default function PrivacyPolicyPage() {
               </p>
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li>Google provides basic account information such as your name, email address, profile picture, and a unique identifier depending on the OAuth configuration.</li>
-                <li>Smart Learn never receives, stores, or requests your Google account password.</li>
+                <li>Debuggerzz never receives, stores, or requests your Google account password.</li>
                 <li>Google permissions and OAuth configurations are fully governed by Google's own privacy policies and user settings. You can revoke this connection at any time in your Google Account settings.</li>
               </ul>
             </section>
@@ -110,7 +110,7 @@ export default function PrivacyPolicyPage() {
                 5. Public Profiles and Achievements
               </h2>
               <p>
-                Smart Learn allows users to showcase their accomplishments. Certain features make information public by design:
+                Debuggerzz allows users to showcase their accomplishments. Certain features make information public by design:
               </p>
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li>Your public coding profile, including username, badges, certificates, and leaderboard rankings.</li>
@@ -176,7 +176,7 @@ export default function PrivacyPolicyPage() {
                 11. Children's Privacy
               </h2>
               <p>
-                Smart Learn is intended for students and learners who are legally permitted to use online services in their jurisdiction. We do not knowingly collect personal information from children under the applicable legal age limit without parental consent. If we learn we have collected such data, we will act promptly to delete it.
+                Debuggerzz is intended for students and learners who are legally permitted to use online services in their jurisdiction. We do not knowingly collect personal information from children under the applicable legal age limit without parental consent. If we learn we have collected such data, we will act promptly to delete it.
               </p>
             </section>
 
@@ -208,7 +208,7 @@ export default function PrivacyPolicyPage() {
       {/* Footer */}
       <footer className="landing-footer">
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          <p>&copy; {new Date().getFullYear()} Smart Learn. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Debuggerzz. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <Link href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms of Service</Link>
             <Link href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 'bold' }}>Privacy Policy</Link>

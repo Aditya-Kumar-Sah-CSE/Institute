@@ -276,7 +276,7 @@ function CodeAnalysisRatingSection({
                   )}
                 </div>
                 <div style={{ fontSize: '10.5px', color: 'rgba(255, 255, 255, 0.72)' }}>
-                  Credited to Smart Learn XP &amp; Level • {passedTests}/{totalTests} passed
+                  Credited to Debuggerzz XP &amp; Level • {passedTests}/{totalTests} passed
                 </div>
               </div>
             </div>
@@ -645,7 +645,7 @@ function CodeAnalysisRatingSection({
               )}
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.75)' }}>
-              Problem solved! Credited to your Smart Learn profile XP & Level.
+              Problem solved! Credited to your Debuggerzz profile XP & Level.
             </div>
           </div>
         </div>

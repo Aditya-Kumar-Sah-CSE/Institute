@@ -272,7 +272,7 @@ export async function getStudent360Profile(studentId: string): Promise<Student36
     coursesAvailable ? courseProgressPercent === null ? 'no_data' : 'measured' : 'unavailable',
     coursesAvailable ? `${courseRows.length} approved enrollment${courseRows.length === 1 ? '' : 's'}; using stored enrollment progress.` : 'Course enrollment records could not be loaded.');
   const readinessMetric = metric('Learning readiness', 'percent', null, 'no_data',
-    'No validated readiness rubric exists in Smart Learn; incomparable academic, skill, coding and assessment signals are not combined.');
+    'No validated readiness rubric exists in Debuggerzz; incomparable academic, skill, coding and assessment signals are not combined.');
 
   return {
     userId: user.id,

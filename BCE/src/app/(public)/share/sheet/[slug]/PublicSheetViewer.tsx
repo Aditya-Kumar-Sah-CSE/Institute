@@ -240,7 +240,7 @@ export default function PublicSheetViewer({
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.3px', background: 'linear-gradient(90deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Smart Learn Code Arena
+              Debuggerzz Code Arena
             </div>
             <div style={{ fontSize: '10px', color: '#06b6d4', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
               Public Practice Sheet
@@ -864,7 +864,7 @@ export default function PublicSheetViewer({
         >
           <div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Want to track your progress & earn badges?</div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Sign in to Smart Learn Code Arena to submit code, earn daily streaks, and get certified!</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Sign in to Debuggerzz Code Arena to submit code, earn daily streaks, and get certified!</div>
           </div>
           <Link
             href={`/login?next=${encodeURIComponent(`/share/sheet/${sheet.slug}`)}`}

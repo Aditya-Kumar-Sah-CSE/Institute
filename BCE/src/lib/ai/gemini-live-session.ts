@@ -557,7 +557,7 @@ export class GeminiLiveSession {
     const pageCtxText = this.pageContext ? safeStringify(this.pageContext) : 'Standard Page Context';
     const userRole = this.studentProfile?.role || 'student';
 
-    return `You are Smart Learn AI Assistant, a friendly, intelligent voice mentor for engineering and computer science students.
+    return `You are Debuggerzz AI Assistant, a friendly, intelligent voice mentor for engineering and computer science students.
 You talk naturally in English, Hindi, or Hinglish based on how the user speaks to you.
 Be concise, helpful, clear, and direct in your audio responses. Do not produce long walls of text.
 

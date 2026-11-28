@@ -40,7 +40,7 @@ export default function CompetitiveProgress({
             <div className="progress-icon" style={{ background: 'rgba(6,182,212,0.15)', color: '#22d3ee' }}>
               <Code2 size={18} />
             </div>
-            <span className="progress-platform">Smart Learn Code Arena</span>
+            <span className="progress-platform">Debuggerzz Code Arena</span>
           </div>
           <div className="progress-stats">
             <div className="progress-stat-item">

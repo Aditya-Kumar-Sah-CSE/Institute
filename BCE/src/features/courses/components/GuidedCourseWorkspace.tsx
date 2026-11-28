@@ -50,7 +50,7 @@ const Editor = dynamic(() => import('@monaco-editor/react'), {
 
 const TerminalWorkspace = dynamic(() => import('@/features/code-arena/components/TerminalWorkspace'), {
   ssr: false,
-  loading: () => <div style={{ padding: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>Starting Smart Learn Terminal…</div>,
+  loading: () => <div style={{ padding: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>Starting Debuggerzz Terminal…</div>,
 });
 
 interface GuidedCourseWorkspaceProps {
@@ -1862,7 +1862,7 @@ export default function GuidedCourseWorkspace({
                       <>
                         <iframe
                           key={previewKey}
-                          title="Smart Learn Live Web Preview"
+                          title="Debuggerzz Live Web Preview"
                           className="gcw-preview-iframe"
                           sandbox="allow-scripts allow-modals allow-forms"
                           srcDoc={previewSrcDoc || buildLiveHtmlDocument(editorCode, editorLang)}
@@ -1974,7 +1974,7 @@ export default function GuidedCourseWorkspace({
                           `Help me understand "${lesson.title} -> ${activeStep.title}". Context: ${definitionText}. My current code:\n${editorCode}`
                         )
                       }
-                      title="Open in full Smart Learn AI Drawer"
+                      title="Open in full Debuggerzz AI Drawer"
                     >
                       <Bot size={12} /> Full Agent →
                     </button>

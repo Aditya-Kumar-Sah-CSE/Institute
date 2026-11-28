@@ -21,7 +21,6 @@ const ITEM_GROUPS: Record<string, string> = {
   
   'Courses': 'Study',
   'My Courses': 'Study',
-  'My NPTEL Courses': 'Study',
   'NPTEL Management': 'Study',
   'Leaderboard': 'Study',
   'Batch Doubts': 'Study',
@@ -243,7 +242,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
     menuItems.push({ href: '/dashboard/sql-editor', label: 'SQL Editor', icon: 'Database' });
     menuItems.push({ href: '/code-arena/compiler', label: 'Compiler', icon: 'Code' });
     menuItems.push({ href: '/latex-editor', label: 'LaTeX Editor', icon: 'LaTeX' });
-    menuItems.push({ href: '/student/nptel', label: 'My NPTEL Courses', icon: 'Courses' });
+    menuItems.push({ href: '/courses', label: 'Courses', icon: 'Courses' });
     menuItems.push({ href: '/profile', label: 'Profile', icon: 'Profile' });
     menuItems.push({ href: '/settings', label: 'Settings', icon: 'Settings' });
   }

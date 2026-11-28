@@ -858,7 +858,7 @@ int main() {
 - Avoid using \`std::endl\`, use \`'\\n'\` instead, as it does not force-flush the stream buffer.`;
   }
 
-  return `### Smart Learn AI Support
+  return `### Debuggerzz AI Support
 
 I've received your query about **${title}**. 
 
@@ -989,7 +989,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
         setChatMessages([
           {
             sender: 'assistant',
-            text: `Hello! I am your Smart Learn AI assistant. I have analyzed the problem **"${problem.title}"** and loaded its context (statement, constraints, examples, and C++17 workspace language).\n\nHow can I help you today? You can choose one of the quick options below or ask a question.`
+            text: `Hello! I am your Debuggerzz AI assistant. I have analyzed the problem **"${problem.title}"** and loaded its context (statement, constraints, examples, and C++17 workspace language).\n\nHow can I help you today? You can choose one of the quick options below or ask a question.`
           }
         ]);
       }
@@ -1606,7 +1606,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
         <div className="ai-drawer-header">
           <div className="ai-drawer-title">
             <Bot size={16} className="text-neon-cyan" style={{ animation: 'pulse 2s infinite' }} />
-            <span>Smart Learn AI</span>
+            <span>Debuggerzz AI</span>
           </div>
           <button className="ai-drawer-close" onClick={() => setIsAiDrawerOpen(false)} aria-label="Close AI Assistant">
             <X size={16} />

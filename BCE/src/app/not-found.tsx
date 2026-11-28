@@ -18,7 +18,7 @@ const NotFoundClient = dynamic(() => import('@/components/404/NotFoundClient'), 
 });
 
 export const metadata = {
-  title: '404 - Page Not Found | Smart Learn',
+  title: '404 - Page Not Found | Debuggerzz',
   description: 'Looks like you hit a glitch in the system! Play the 404 Brick Breaker mini-game to clear the error.',
 };
 

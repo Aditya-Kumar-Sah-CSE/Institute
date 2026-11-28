@@ -43,7 +43,7 @@ export default function CodeArenaError({
         Code Arena Offline
       </h2>
       <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', lineHeight: '1.6', margin: 0, fontSize: '0.95rem' }}>
-        The Arena or Compiler module is temporarily unavailable or experiencing high traffic. The rest of Smart Learn remains fully functional. You can try restarting the arena workspace.
+        The Arena or Compiler module is temporarily unavailable or experiencing high traffic. The rest of Debuggerzz remains fully functional. You can try restarting the arena workspace.
       </p>
       {error.message && (
         <pre style={{

@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Smart Hybrid Learning',
+    title: 'Debuggerzz',
   },
   formatDetection: {
     telephone: false,

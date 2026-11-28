@@ -77,7 +77,7 @@ export class DefaultLLMBridge implements LLMProvider {
 
   public async generate(request: LLMGenerationRequest): Promise<StructuredLLMGenerationResponse> {
     const promptText = `
-You are Smart Learn Autonomous Coding Specialist.
+You are Debuggerzz Autonomous Coding Specialist.
 TASK: "${request.prompt}"
 
 PROJECT CONTEXT:
@@ -118,7 +118,7 @@ REQUIREMENTS:
 
   public async fix(request: LLMFixRequest): Promise<StructuredLLMFixResponse> {
     const promptText = `
-You are Smart Learn Autonomous Code Repair Specialist.
+You are Debuggerzz Autonomous Code Repair Specialist.
 GOAL: Fix compiler and TypeScript diagnostic errors in the workspace.
 
 DIAGNOSTIC ERRORS DETECTED:

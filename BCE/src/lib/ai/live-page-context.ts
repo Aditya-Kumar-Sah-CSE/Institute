@@ -136,7 +136,7 @@ export function buildDefaultLiveContext(route: string = '/dashboard'): LivePageC
             : route.includes('/certificates') ? 'certificates'
             : route.includes('/latex-editor') ? 'latex'
             : 'dashboard',
-    pageTitle: 'Smart Learn Platform',
+    pageTitle: 'Debuggerzz',
     interactiveElementsList: [],
     availableActions: ['open_dashboard', 'open_courses', 'open_dsa', 'interactWithPageElement', 'fillFormInput', 'get_learning_intelligence']
   };

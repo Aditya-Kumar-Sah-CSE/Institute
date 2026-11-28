@@ -75,7 +75,7 @@ function createClientTool(name: string): AgentToolDefinition {
   const riskLevel: RiskLevel = HIGH_RISK_TOOLS.has(name) ? 'HIGH' : 'MEDIUM';
   return {
     name,
-    description: descriptions[name] || `Execute the ${name} Smart Learn Agent tool.`,
+    description: descriptions[name] || `Execute the ${name} Debuggerzz Agent tool.`,
     category: 'REMOTE',
     riskLevel,
     parameters: { type: 'object', properties: {} },
