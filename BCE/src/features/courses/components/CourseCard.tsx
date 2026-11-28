@@ -44,11 +44,14 @@ export default function CourseCard({ course, progress, status, certificateId, in
   const router = useRouter();
 
   useEffect(() => {
+    if (!isStudentsModalOpen) return;
     getTopEnrolledStudents(course.id, 3).then(res => {
       setEnrolledStudents(res.students);
       setTotalEnrolled(res.total);
     });
+  }, [course.id, isStudentsModalOpen]);
 
+  useEffect(() => {
     if (!initialRatingStats) {
       getCourseReviewsData(course.id).then(res => {
         if (res?.stats) {

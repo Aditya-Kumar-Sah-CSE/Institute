@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { GraduationCap, Play, ArrowRight, BookOpen } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import { truncateText } from '@/lib/utils';
 import {
   COURSE_UPDATED_EVENT,
   readLastCourseActivity,
@@ -67,6 +68,8 @@ export default function DashboardCourseCard({
   const completedLessons = initialSummary?.completedLessons ?? 0;
   const totalLessons = initialSummary?.totalLessons ?? 0;
   const isCompletedCourse = totalLessons > 0 && completedLessons >= totalLessons;
+  const courseLabelText = hasEnrolledCourse && initialSummary ? activeCourseTitle : 'MY COURSES';
+  const actionTitleText = resumeLessonTitle || activeCourseTitle;
 
   return (
     <Card
@@ -82,7 +85,7 @@ export default function DashboardCourseCard({
         cursor: 'default',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', width: '100%' }}>
+      <div className="dashboard-card-top">
         <Link href="/courses" style={{ textDecoration: 'none' }} title="Browse All Courses">
           <div
             className="stat-card-icon"
@@ -102,6 +105,7 @@ export default function DashboardCourseCard({
 
             {totalLessons > 0 && (
               <span
+                className="dashboard-card-stat-badge"
                 style={{
                   fontSize: '10px',
                   fontWeight: 700,
@@ -121,7 +125,7 @@ export default function DashboardCourseCard({
             )}
           </div>
 
-          <Link href="/courses" style={{ textDecoration: 'none' }}>
+          <Link href="/courses" style={{ textDecoration: 'none', maxWidth: '100%', width: '100%' }}>
             <div
               className="text-secondary stat-card-label"
               style={{
@@ -135,7 +139,8 @@ export default function DashboardCourseCard({
               }}
               title={activeCourseTitle}
             >
-              {hasEnrolledCourse && initialSummary ? activeCourseTitle : 'MY COURSES'}
+              <span className="dashboard-desktop-only">{courseLabelText}</span>
+              <span className="dashboard-mobile-only">{truncateText(courseLabelText, 12)}</span>
             </div>
           </Link>
         </div>
@@ -169,53 +174,27 @@ export default function DashboardCourseCard({
 
       {/* Continue Course Action Row */}
       {activeCourseId ? (
-        <div
-          style={{
-            marginTop: '10px',
-            paddingTop: '8px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="dashboard-card-action-row">
           <div
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: '175px',
-            }}
-            title={resumeLessonTitle || activeCourseTitle}
+            className="dashboard-card-action-label"
+            title={actionTitleText}
           >
             <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
               {mounted && lastLocal?.lessonId ? 'Last:' : 'Next:'}
             </span>{' '}
-            {resumeLessonTitle || activeCourseTitle}
+            <span className="dashboard-desktop-only">{actionTitleText}</span>
+            <span className="dashboard-mobile-only">{truncateText(actionTitleText, 12)}</span>
           </div>
 
           <Link
             href={continueHref}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 800,
-              padding: '5px 12px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              boxShadow: '0 0 10px rgba(6, 182, 212, 0.35)',
-              transition: 'all 0.2s ease',
-            }}
+            className="dashboard-continue-btn dashboard-continue-btn--course"
+            aria-label={`Continue Course: ${actionTitleText}`}
           >
-            <Play size={11} fill="currentColor" /> Continue Course →
+            <span className="dashboard-continue-desktop">
+              <Play size={11} fill="currentColor" /> Continue Course →
+            </span>
+            <span className="dashboard-continue-mobile" aria-hidden="true">&gt;</span>
           </Link>
         </div>
       ) : (

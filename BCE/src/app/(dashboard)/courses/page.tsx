@@ -1,68 +1,49 @@
 import { createClient } from '@/lib/supabase/server';
 import CourseCatalog from '@/features/courses/components/CourseCatalog';
 import { getBatchCourseRatingStats } from '@/features/courses/actions/reviews';
+import { queryCourseCards } from '@/features/courses/lib/courseQueries';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Only select card-level columns for fast load — no heavy content/modules
-  const coursesQuery = supabase
-    .from('courses')
-    .select('id, title, description, thumbnail_url, difficulty, category, is_published, is_deleted, created_at, created_by, instructor_name, co_instructors, tags, total_xp, lesson_count, profiles!courses_created_by_fkey(name)')
-    .eq('is_published', true)
-    .eq('is_deleted', false)
-    .order('created_at', { ascending: false });
-
-  const enrollmentsQuery = user ? supabase
-    .from('enrollments')
-    .select('course_id, progress, status')
-    .eq('user_id', user.id) : null;
-
-  const certificatesQuery = user ? supabase
-    .from('certificates')
-    .select('id, course_id')
-    .eq('user_id', user.id) : null;
-
-  const [coursesRes, enrollmentsRes, certificatesRes] = await Promise.all([
-    coursesQuery,
-    enrollmentsQuery,
-    certificatesQuery
+  const [enrollmentsRes, certificatesRes] = await Promise.all([
+    user
+      ? supabase
+          .from('enrollments')
+          .select('course_id, progress, status')
+          .eq('user_id', user.id)
+      : Promise.resolve({ data: [] as { course_id: string; progress: number; status: string }[] }),
+    user
+      ? supabase
+          .from('certificates')
+          .select('id, course_id')
+          .eq('user_id', user.id)
+      : Promise.resolve({ data: [] as { id: string; course_id: string }[] }),
   ]);
 
-  let courses: any[] | null = coursesRes.data as any;
+  const enrollments = enrollmentsRes.data || [];
+  const certificatesData = certificatesRes.data || [];
 
-  // Fallback: Query without join in case foreign key relationship alias cache fails
-  if (!courses || courses.length === 0) {
-    const { data: rawCourses } = await supabase
-      .from('courses')
-      .select('id, title, description, thumbnail_url, difficulty, category, is_published, is_deleted, created_at, created_by, instructor_name, co_instructors, tags, total_xp, lesson_count')
-      .eq('is_published', true)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
-    courses = rawCourses as any;
-  }
-
-  const enrollments = enrollmentsRes?.data;
-  const certificatesData = certificatesRes?.data;
-
-  // Fetch user's enrollments to pass progress to catalog
   const enrollmentsMap: Record<string, { progress: number; status: string }> = {};
-  if (enrollments) {
-    enrollments.forEach(e => {
-      enrollmentsMap[e.course_id] = { progress: e.progress, status: e.status };
-    });
-  }
+  const enrolledCourseIds: string[] = [];
+  enrollments.forEach((e) => {
+    enrollmentsMap[e.course_id] = { progress: e.progress, status: e.status };
+    if (e.course_id) enrolledCourseIds.push(e.course_id);
+  });
 
   const certificatesMap: Record<string, string> = {};
-  if (certificatesData) {
-    certificatesData.forEach(c => {
-      certificatesMap[c.course_id] = c.id;
-    });
-  }
+  certificatesData.forEach((c) => {
+    certificatesMap[c.course_id] = c.id;
+  });
 
-  const courseIds = (courses || []).map((c: any) => c.id).filter(Boolean);
-  const ratingStatsMap = courseIds.length > 0 ? await getBatchCourseRatingStats(courseIds) : {};
+  // Initial load fetches only the user's enrolled course cards; un-enrolled courses lazy-load on tab switch.
+  const [{ courses: enrolledCourses }, ratingStatsMap] = await Promise.all([
+    queryCourseCards(supabase, { courseIds: enrolledCourseIds }),
+    enrolledCourseIds.length > 0
+      ? getBatchCourseRatingStats(enrolledCourseIds)
+      : Promise.resolve({}),
+  ]);
 
   return (
     <div className="courses-page">
@@ -71,9 +52,9 @@ export default async function CoursesPage() {
         <p className="text-secondary">Discover new skills and level up your career.</p>
       </div>
 
-      <CourseCatalog 
-        courses={courses || []} 
-        enrollments={enrollmentsMap} 
+      <CourseCatalog
+        courses={enrolledCourses}
+        enrollments={enrollmentsMap}
         certificatesMap={certificatesMap}
         ratingStatsMap={ratingStatsMap}
       />

@@ -102,3 +102,9 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 }
+
+/** Truncates text past maxLength characters and appends an ellipsis. */
+export function truncateText(text: string, maxLength = 12): string {
+  if (!text || text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}...`;
+}

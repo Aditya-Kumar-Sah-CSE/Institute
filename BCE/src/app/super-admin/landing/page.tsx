@@ -14,12 +14,17 @@ function ImageField({ name, initialUrl, required, onPreview }: { name: string; i
   const [url, setUrl] = useState(initialUrl || '');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setUrl(initialUrl || '');
+  }, [initialUrl]);
+
   const upload = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) { setError('Please choose an image file.'); return; }
-    if (file.size > 8 * 1024 * 1024) { setError('Image must be smaller than 8 MB.'); return; }
+    if (file.size > 2 * 1024 * 1024) { setError('Keep uploads under 2 MB, or paste a lightweight WebP/SVG URL above.'); return; }
     setUploading(true); setError('');
-    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'webp';
     const path = `landing/${crypto.randomUUID()}.${extension}`;
     const supabase = createClient();
     const { data, error: uploadError } = await supabase.storage.from('branding').upload(path, file, { upsert: false, contentType: file.type });
@@ -27,7 +32,41 @@ function ImageField({ name, initialUrl, required, onPreview }: { name: string; i
     const { data: publicData } = supabase.storage.from('branding').getPublicUrl(data.path);
     setUrl(publicData.publicUrl); setUploading(false);
   };
-  return <div className="cms-upload-field"><input type="hidden" name={name} value={url} required={required} /><label className="cms-upload-control"><input type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={event => upload(event.target.files?.[0])} />{uploading ? <><Loader2 size={16} className="cms-spin" />Uploading…</> : <><ImageIcon size={16} />Choose from device</>}</label>{url && <button type="button" className="cms-uploaded-preview" onClick={() => onPreview(url)}><img src={url} alt="Selected upload" /><span>Change image</span></button>}{error && <small className="cms-upload-error">{error}</small>}</div>;
+
+  return (
+    <div className="cms-upload-field">
+      <div className="cms-url-row">
+        <input
+          type="text"
+          inputMode="url"
+          name={name}
+          value={url}
+          onChange={event => { setUrl(event.target.value); setError(''); }}
+          required={required}
+          placeholder="Paste image URL (https://... or /images/...)"
+          aria-label="Image URL"
+        />
+        {url && (
+          <button type="button" className="cms-clear-url-btn" onClick={() => setUrl('')} title="Clear URL" aria-label="Clear image URL">
+            <X size={14} />
+          </button>
+        )}
+      </div>
+      <div className="cms-upload-actions">
+        <label className="cms-upload-control">
+          <input type="file" accept="image/webp,image/svg+xml,image/jpeg,image/png,image/gif" onChange={event => upload(event.target.files?.[0])} />
+          {uploading ? <><Loader2 size={14} className="cms-spin" />Uploading…</> : <><ImageIcon size={14} />Upload (&lt;2MB)</>}
+        </label>
+        {url && (
+          <button type="button" className="cms-uploaded-preview" onClick={() => onPreview(url)}>
+            <img src={url} alt="Selected image" />
+            <span>Preview</span>
+          </button>
+        )}
+      </div>
+      {error && <small className="cms-upload-error">{error}</small>}
+    </div>
+  );
 }
 
 export default function LandingCmsPage() {
@@ -47,7 +86,7 @@ export default function LandingCmsPage() {
 
   return (
     <div className="cms-page-shell">
-      <main className="landing-cms"><header className="cms-page-header"><a href="/super-admin" className="cms-back"><ChevronLeft size={16} /> Back to Super Admin</a><div><p className="cms-eyebrow">Public experience</p><h1>Landing Page &amp; Branding</h1><p>Manage public content, visuals and feature highlights from one place.</p></div></header>{feedback && <div className={`cms-feedback ${feedback.type}`} role="status">{feedback.type === 'success' ? <CheckCircle2 size={18} /> : <X size={18} />}{feedback.text}</div>}<div className="cms-dashboard"><section className="cms-panel cms-branding"><div className="cms-panel-heading"><div><h2>Branding</h2><p>Platform name, logo and global tagline.</p></div>{imagePreview(data.branding?.logo_url, 'logo')}</div><form className="cms-form" onSubmit={submit('branding', data.branding || {})}><label>Platform name<input name="company_name" defaultValue={data.branding?.company_name} required placeholder="Debuggerzz" /></label><label>Tagline<input name="tagline" defaultValue={data.branding?.tagline} placeholder="Your platform tagline" /></label><label>Logo image</label><ImageField name="logo_url" initialUrl={data.branding?.logo_url} onPreview={setPreview} /><button className="cms-save-button" disabled={saving !== null}>{saving === 'branding:new' ? <Loader2 size={16} className="cms-spin" /> : <Save size={16} />}Save branding</button></form></section><section className="cms-panel cms-hero"><div className="cms-panel-heading"><div><h2>Hero</h2><p>Edit the first impression shown on the public homepage.</p></div>{imagePreview(data.content?.hero_image_url, 'hero image')}</div><form className="cms-form cms-hero-form" onSubmit={submit('hero', data.content || {})}>{['hero_badge', 'hero_heading', 'hero_highlight', 'hero_description', 'hero_cta_text', 'hero_cta_link', 'hero_cta_text_2', 'hero_cta_link_2'].map(key => <label key={key}>{fieldLabel(key)}{key === 'hero_description' ? <textarea name={key} defaultValue={data.content?.[key]} rows={3} /> : <input name={key} defaultValue={data.content?.[key]} placeholder={fieldLabel(key)} />}</label>)}<label>Hero image</label><ImageField name="hero_image_url" initialUrl={data.content?.hero_image_url} onPreview={setPreview} /><button className="cms-save-button" disabled={saving !== null}>{saving === 'hero:new' ? <Loader2 size={16} className="cms-spin" /> : <Save size={16} />}Save hero</button></form></section></div><section className="cms-panel cms-collection"><div className="cms-panel-heading"><div><h2>Landing Cards</h2><p>Compact visual cards with click-to-preview images.</p></div><button type="button" className="cms-add-button" onClick={() => setAdding(adding === 'card' ? null : 'card')}><Plus size={16} /> Add Card</button></div><div className="cms-items-grid">{data.cards.map((item: Item) => editor('card', item))}{adding === 'card' && editor('card', blank, true)}</div></section><section className="cms-panel cms-collection"><div className="cms-panel-heading"><div><h2>Core Features</h2><p>Real platform capabilities shown in the landing-page features grid &amp; marquee.</p></div><button type="button" className="cms-add-button" onClick={() => setAdding(adding === 'feature' ? null : 'feature')}><Plus size={16} /> Add Feature</button></div><div className="cms-items-grid">{data.features.map((item: Item) => editor('feature', item))}{adding === 'feature' && editor('feature', blank, true)}</div></section>{preview && <div className="cms-lightbox" onClick={() => setPreview(null)} role="dialog" aria-modal="true"><button className="cms-lightbox-close" onClick={() => setPreview(null)}><X size={20} /></button><img src={preview} alt="Full-size preview" onClick={event => event.stopPropagation()} /></div>}</main>
+      <main className="landing-cms"><header className="cms-page-header"><a href="/super-admin" className="cms-back"><ChevronLeft size={16} /> Back to Super Admin</a><div><p className="cms-eyebrow">Public experience</p><h1>Landing Page &amp; Branding</h1><p>Manage public content, visuals and feature highlights from one place.</p></div></header>{feedback && <div className={`cms-feedback ${feedback.type}`} role="status">{feedback.type === 'success' ? <CheckCircle2 size={18} /> : <X size={18} />}{feedback.text}</div>}<div className="cms-dashboard"><section className="cms-panel cms-branding"><div className="cms-panel-heading"><div><h2>Branding</h2><p>Platform name, logo and global tagline.</p></div>{imagePreview(data.branding?.logo_url, 'logo')}</div><form className="cms-form" onSubmit={submit('branding', data.branding || {})}><label>Platform name<input name="company_name" defaultValue={data.branding?.company_name} required placeholder="Debuggerzz" /></label><label>Tagline<input name="tagline" defaultValue={data.branding?.tagline} placeholder="Your platform tagline" /></label><label>Logo image</label><ImageField name="logo_url" initialUrl={data.branding?.logo_url} onPreview={setPreview} /><button className="cms-save-button" disabled={saving !== null}>{saving === 'branding:new' ? <Loader2 size={16} className="cms-spin" /> : <Save size={16} />}Save branding</button></form></section><section className="cms-panel cms-hero"><div className="cms-panel-heading"><div><h2>Hero</h2><p>Edit the first impression shown on the public homepage.</p></div>{imagePreview(data.content?.hero_image_url, 'hero image')}</div><form className="cms-form cms-hero-form" onSubmit={submit('hero', data.content || {})}>{['hero_badge', 'hero_heading', 'hero_highlight', 'hero_description', 'hero_cta_text', 'hero_cta_link', 'hero_cta_text_2', 'hero_cta_link_2'].map(key => <label key={key}>{fieldLabel(key)}{key === 'hero_description' ? <textarea name={key} defaultValue={data.content?.[key]} rows={3} /> : <input name={key} defaultValue={data.content?.[key]} placeholder={fieldLabel(key)} />}</label>)}<label>Hero image</label><ImageField name="hero_image_url" initialUrl={data.content?.hero_image_url} onPreview={setPreview} /><button className="cms-save-button" disabled={saving !== null}>{saving === 'hero:new' ? <Loader2 size={16} className="cms-spin" /> : <Save size={16} />}Save hero</button></form></section></div><section className="cms-panel cms-collection"><div className="cms-panel-heading"><div><h2>Landing Cards</h2><p>Compact visual cards with click-to-preview images.</p></div><button type="button" className="cms-add-button" onClick={() => setAdding(adding === 'card' ? null : 'card')}><Plus size={16} /> Add Card</button></div><div className="cms-items-grid">{data.cards.map((item: Item) => editor('card', item))}{adding === 'card' && editor('card', blank, true)}</div></section><section className="cms-panel cms-collection cms-collection-features"><div className="cms-panel-heading"><div><h2>Core Features</h2><p>Real platform capabilities shown in the landing-page features grid &amp; marquee.</p></div><button type="button" className="cms-add-button" onClick={() => setAdding(adding === 'feature' ? null : 'feature')}><Plus size={16} /> Add Feature</button></div><div className="cms-items-grid">{data.features.map((item: Item) => editor('feature', item))}{adding === 'feature' && editor('feature', blank, true)}</div></section>{preview && <div className="cms-lightbox" onClick={() => setPreview(null)} role="dialog" aria-modal="true"><button className="cms-lightbox-close" onClick={() => setPreview(null)}><X size={20} /></button><img src={preview} alt="Full-size preview" onClick={event => event.stopPropagation()} /></div>}</main>
     </div>
   );
 }

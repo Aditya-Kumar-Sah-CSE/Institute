@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BookOpen, Play, Clock, ArrowRight } from 'lucide-react';
 import Card from '@/components/ui/Card';
+import { truncateText } from '@/lib/utils';
 
 interface LastSolvedProblem {
   problemId: string;
@@ -84,7 +85,7 @@ export default function DashboardSheetsCard() {
         cursor: 'default' 
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', width: '100%' }}>
+      <div className="dashboard-card-top">
         <Link href="/code-arena/sheets" style={{ textDecoration: 'none' }} title="Browse All Coding Sheets">
           <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)', cursor: 'pointer' }}>
             <BookOpen size={24} />
@@ -101,6 +102,7 @@ export default function DashboardSheetsCard() {
             
             {mounted && avgTimeStr && (
               <span 
+                className="dashboard-card-stat-badge"
                 style={{ 
                   fontSize: '10px', 
                   fontWeight: 700, 
@@ -120,7 +122,7 @@ export default function DashboardSheetsCard() {
             )}
           </div>
 
-          <Link href="/code-arena/sheets" style={{ textDecoration: 'none' }}>
+          <Link href="/code-arena/sheets" style={{ textDecoration: 'none', maxWidth: '100%', width: '100%' }}>
             <div className="text-secondary stat-card-label" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               DSA SHEETS
             </div>
@@ -130,40 +132,22 @@ export default function DashboardSheetsCard() {
 
       {/* Continue Solving Action Row */}
       {mounted && lastSolved ? (
-        <div 
-          style={{ 
-            marginTop: '10px', 
-            paddingTop: '8px', 
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            flexWrap: 'wrap'
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }} title={lastSolved.title}>
-            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Last:</span> {lastSolved.title}
+        <div className="dashboard-card-action-row">
+          <div className="dashboard-card-action-label" title={lastSolved.title}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Last:</span>{' '}
+            <span className="dashboard-desktop-only">{lastSolved.title}</span>
+            <span className="dashboard-mobile-only">{truncateText(lastSolved.title, 12)}</span>
           </div>
 
           <Link
             href={continueUrl}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 800,
-              padding: '5px 12px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              boxShadow: '0 0 10px rgba(16, 185, 129, 0.35)',
-              transition: 'all 0.2s ease',
-            }}
+            className="dashboard-continue-btn dashboard-continue-btn--sheets"
+            aria-label={`Continue Solving: ${lastSolved.title}`}
           >
-            <Play size={11} fill="currentColor" /> Continue Solving →
+            <span className="dashboard-continue-desktop">
+              <Play size={11} fill="currentColor" /> Continue Solving →
+            </span>
+            <span className="dashboard-continue-mobile" aria-hidden="true">&gt;</span>
           </Link>
         </div>
       ) : (

@@ -313,6 +313,12 @@
   height: 112px;
 }
 
+.cms-collection-features .cms-item .cms-image-preview img {
+  object-fit: contain;
+  padding: 14px;
+  background: radial-gradient(circle at center, rgba(6, 182, 212, 0.1), #0b1220);
+}
+
 .cms-item-actions {
   min-width: 28px;
 }
