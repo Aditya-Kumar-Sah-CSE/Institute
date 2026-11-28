@@ -31,21 +31,9 @@ export default async function LandingPage() {
   const companyName = settings?.company_name || hero?.hero_heading || 'Debuggerzz';
   const tagline = settings?.tagline || '';
 
-  const isConfiguredImageHost = (url?: string | null) => {
-    if (!url || !/^https?:\/\//i.test(url)) return true;
-    try {
-      const { hostname } = new URL(url);
-      return hostname.endsWith('.supabase.co') || hostname === 'lh3.googleusercontent.com';
-    } catch {
-      return false;
-    }
-  };
-
   const logoUrl = settings?.logo_url;
-  const isRemoteLogo = !isConfiguredImageHost(logoUrl);
 
   const heroImageUrl = hero?.hero_image_url || '/images/hero_img.png';
-  const isRemoteHero = !isConfiguredImageHost(heroImageUrl);
 
   const coursesCount = coursesRes.data?.length || 0;
   const sheetsList = sheetsRes.data || [];
@@ -75,7 +63,7 @@ export default async function LandingPage() {
               alt={`${companyName} logo`} 
               width={38} 
               height={38}
-              unoptimized={isRemoteLogo}
+              unoptimized
               style={{
                 width: '38px',
                 height: '38px',
@@ -191,7 +179,7 @@ export default async function LandingPage() {
                   height={600}
                   priority
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  unoptimized={isRemoteHero}
+                  unoptimized
                   className="hero-illustration"
                   style={{ width: '132%', height: 'auto', objectFit: 'contain' }}
                 />
