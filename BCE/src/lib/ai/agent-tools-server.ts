@@ -2567,6 +2567,21 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
       const url = (args.url || '').trim();
       if (!url || !url.startsWith('http')) return { success: false, message: 'Valid URL required (must start with http/https).' };
       try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.toLowerCase();
+        if (
+          (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+          host === 'localhost' || host === '0.0.0.0' || host === '::1' ||
+          host.endsWith('.local') || host.endsWith('.internal') ||
+          /^127\.|^10\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+          /^\[?(fe80|fc|fd)/i.test(host)
+        ) {
+          return { success: false, message: 'Only public http/https URLs are permitted.' };
+        }
+      } catch {
+        return { success: false, message: 'Valid URL required.' };
+      }
+      try {
         const res = await fetch(url, {
           headers: { 'User-Agent': 'SmartLearnAgent/1.0' },
           signal: AbortSignal.timeout(10000)
@@ -2610,6 +2625,21 @@ std::vector<int> twoSum(std::vector<int>& nums, int target) {
     execute: async (args) => {
       const url = (args.url || '').trim();
       if (!url || !url.startsWith('http')) return { success: false, message: 'Valid URL required.' };
+      try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.toLowerCase();
+        if (
+          (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+          host === 'localhost' || host === '0.0.0.0' || host === '::1' ||
+          host.endsWith('.local') || host.endsWith('.internal') ||
+          /^127\.|^10\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+          /^\[?(fe80|fc|fd)/i.test(host)
+        ) {
+          return { success: false, message: 'Only public http/https URLs are permitted.' };
+        }
+      } catch {
+        return { success: false, message: 'Valid URL required.' };
+      }
       try {
         const res = await fetch(url, {
           headers: { 'User-Agent': 'SmartLearnAgent/1.0' },

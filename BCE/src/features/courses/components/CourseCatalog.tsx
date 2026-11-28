@@ -11,9 +11,10 @@ interface CourseCatalogProps {
   courses: Course[];
   enrollments?: Record<string, { progress: number; status: string }>; // courseId -> { progress, status }
   certificatesMap?: Record<string, string>;
+  ratingStatsMap?: Record<string, { averageRating: number; totalReviews: number }>;
 }
 
-export default function CourseCatalog({ courses, enrollments = {}, certificatesMap = {} }: CourseCatalogProps) {
+export default function CourseCatalog({ courses, enrollments = {}, certificatesMap = {}, ratingStatsMap = {} }: CourseCatalogProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [enrollmentFilter, setEnrollmentFilter] = useState<'all' | 'enrolled'>('enrolled');
   const [semesterFilter, setSemesterFilter] = useState('all');
@@ -125,6 +126,7 @@ export default function CourseCatalog({ courses, enrollments = {}, certificatesM
                 progress={enrollments[course.id]?.progress} 
                 status={enrollments[course.id]?.status}
                 certificateId={certificatesMap[course.id]}
+                initialRatingStats={ratingStatsMap[course.id]}
               />
             ))}
           </div>

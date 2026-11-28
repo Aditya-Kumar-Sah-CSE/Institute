@@ -82,8 +82,6 @@ export async function POST(request: Request) {
         memoryLimitMb: 256,
       });
 
-      const diff = ((body as any)?.difficulty || 'EASY').toUpperCase();
-      const localXp = diff === 'HARD' ? 20 : diff === 'MEDIUM' ? 10 : 5;
       const localSubId = `local-sub-${Date.now()}`;
       const localResultData = {
         id: localSubId,
@@ -94,18 +92,9 @@ export async function POST(request: Request) {
         runtime_output: result.runtimeOutput,
         execution_time_ms: 12,
         memory_used_mb: 14.5,
-        xp_awarded: localXp,
+        xp_awarded: 0,
         created_at: new Date().toISOString(),
       };
-
-      if (result.status === 'ACCEPTED') {
-        (async () => {
-          try {
-            const { awardXP } = await import('@/features/auth/actions/auth');
-            await awardXP(user.id, localXp, 'Solved Coding Problem', 'code_arena', problemId);
-          } catch {}
-        })();
-      }
 
       return NextResponse.json({ success: true, data: localResultData }, { status: 201 });
     }
@@ -210,6 +199,31 @@ export async function POST(request: Request) {
       memoryLimitMb: problem.memory_limit_mb,
     });
 
+    // Redact hidden testcase inputs and expected/actual outputs before persisting or returning to students
+    let sanitizedRuntimeOutput = result.runtimeOutput;
+    if (result.runtimeOutput && tests && tests.some((t: any) => t.is_hidden)) {
+      try {
+        const parsed = JSON.parse(result.runtimeOutput);
+        if (Array.isArray(parsed)) {
+          sanitizedRuntimeOutput = JSON.stringify(
+            parsed.map((item: any, idx: number) =>
+              tests[idx]?.is_hidden
+                ? {
+                    ...item,
+                    input: '[Hidden Test Case]',
+                    expectedOutput: '[Hidden]',
+                    actualOutput: '[Hidden]',
+                    isHidden: true,
+                  }
+                : item
+            )
+          );
+        }
+      } catch {
+        sanitizedRuntimeOutput = result.runtimeOutput;
+      }
+    }
+
     const { data, error } = await supabase
       .from('coding_submissions')
       .insert({
@@ -222,7 +236,7 @@ export async function POST(request: Request) {
         passed_tests: result.passedTests,
         total_tests: result.totalTests,
         compiler_output: result.compilerOutput,
-        runtime_output: result.runtimeOutput,
+        runtime_output: sanitizedRuntimeOutput,
       })
       .select('id, status, passed_tests, total_tests, compiler_output, runtime_output, created_at')
       .single();

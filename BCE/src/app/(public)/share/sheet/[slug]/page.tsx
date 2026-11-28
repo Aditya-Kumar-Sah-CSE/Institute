@@ -1,144 +1,47 @@
-import { Suspense } from 'react';
+import { Suspense, cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
+import { getSerializedPublicSheet } from '@/lib/sheet-cache';
 import PublicSheetViewer from './PublicSheetViewer';
 import SqlSheetDetailClient from '@/features/code-arena/components/sql-sheet/SqlSheetDetailClient';
 import RoadmapSheetDetailClient from '@/features/code-arena/components/roadmap/RoadmapSheetDetailClient';
 import AptitudeSheetDetailClient from '@/features/code-arena/components/aptitude-sheet/AptitudeSheetDetailClient';
-import {
-  fetchAllAptitudeQuestions,
-  fetchAptitudeChaptersAndProgress,
-} from '@/features/code-arena/data/aptitudeSheetTypes';
 import TcsPrepSheetDetailClient from '@/features/code-arena/components/tcs-prep/TcsPrepSheetDetailClient';
-import {
-  fetchAllTcsQuestions,
-  fetchTcsPrepCoreData,
-} from '@/features/code-arena/data/tcsPrepTypes';
+
+export const revalidate = 180;
 
 function getSupabaseClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
   );
 }
 
-async function getPublicSheetData(slugOrId: string) {
-  const supabase = getSupabaseClient();
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+const getPublicSheetMetadata = cache(
+  unstable_cache(
+    async (slugOrId: string) => {
+      const supabase = getSupabaseClient();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+      let query = supabase
+        .from('coding_sheets')
+        .select('id, slug, is_public, title, description, sheet_type, metadata, profiles!coding_sheets_created_by_fkey(name), coding_sheet_problems(count)');
+      query = isUUID ? query.eq('id', slugOrId) : query.eq('slug', slugOrId);
+      const { data: sheet, error } = await query.maybeSingle();
+      if (error || !sheet || !sheet.is_public) return null;
+      return sheet;
+    },
+    ['public-sheet-meta-v1'],
+    { revalidate: 180 }
+  )
+);
 
-  let query = supabase
-    .from('coding_sheets')
-    .select('id, slug, is_public, published_at, title, description, created_at, enrollment_access, created_by, attachment_url, attachment_type, youtube_url, sheet_type, metadata, profiles!coding_sheets_created_by_fkey(name, avatar_url, role)');
-
-  if (isUUID) {
-    query = query.eq('id', slugOrId);
-  } else {
-    query = query.eq('slug', slugOrId);
-  }
-
-  const { data: sheet, error: sheetError } = await query.maybeSingle();
-
-  // Security Gate: Must be public
-  if (sheetError || !sheet || !sheet.is_public) return null;
-
-  let problems: any[] = [];
-  let sqlQuestions: any[] = [];
-  let roadmapLevels: any[] = [];
-  let roadmapProblems: any[] = [];
-  let aptitudeChapters: any[] = [];
-  let aptitudeQuestions: any[] = [];
-  let tcsData: { chapters: any[]; questions: any[]; drills: any[]; mockHeaders: any[] } | null = null;
-
-  if ((sheet as any).sheet_type === 'SQL') {
-    const { data: sqlData } = await supabase
-      .from('coding_sheet_sql_questions')
-      .select('id, question_number, type, section, difficulty, question, options, correct_option, correct_answer, solution_sql, basic_concepts, explanation_points, incorrect_options, step_by_step, clause_breakdown')
-      .eq('sheet_id', sheet.id)
-      .order('question_number', { ascending: true });
-    sqlQuestions = sqlData || [];
-  } else if ((sheet as any).sheet_type === 'APTITUDE') {
-    const [aptQuestions, { chapters }] = await Promise.all([
-      fetchAllAptitudeQuestions(supabase, sheet.id),
-      fetchAptitudeChaptersAndProgress(supabase, sheet.id),
-    ]);
-    aptitudeChapters = chapters;
-    aptitudeQuestions = aptQuestions;
-  } else if ((sheet as any).sheet_type === 'TCS_PREP') {
-    const [tcsQs, core] = await Promise.all([
-      fetchAllTcsQuestions(supabase, sheet.id),
-      fetchTcsPrepCoreData(supabase, sheet.id),
-    ]);
-    tcsData = {
-      chapters: core.chapters,
-      questions: tcsQs,
-      drills: core.drills,
-      mockHeaders: core.mockHeaders,
-    };
-  } else if ((sheet as any).sheet_type === 'ROADMAP') {
-    const [{ data: lvlData }, { data: probData }] = await Promise.all([
-      supabase
-        .from('coding_sheet_roadmap_levels')
-        .select('id, level_number, title, subtitle, description, target_problem_count, is_unlocked, theory_modules, revision_data, meta')
-        .eq('sheet_id', sheet.id)
-        .order('level_number', { ascending: true }),
-      supabase
-        .from('coding_sheet_roadmap_problems')
-        .select('id, problem_code, order_index, level_number, batch_name, topic, title, difficulty, company_tags, problem_statement, description, constraints, test_cases, theory, brute_force, optimized, explanation, edge_cases')
-        .eq('sheet_id', sheet.id)
-        .order('order_index', { ascending: true }),
-    ]);
-    roadmapLevels = lvlData || [];
-    roadmapProblems = probData || [];
-  } else {
-    // Fetch public problem details
-    const { data: problemsData } = await supabase
-      .from('coding_sheet_problems')
-      .select('order_index, youtube_url, text_solution, coding_problems(id, title, difficulty, source_type, external_platform, external_problem_id, external_url, tags)')
-      .eq('sheet_id', sheet.id)
-      .order('order_index', { ascending: true });
-
-    problems = (problemsData || []).map((p: any) => ({
-      ...p.coding_problems,
-      order_index: p.order_index,
-      youtube_url: p.youtube_url || null,
-      text_solution: p.text_solution || null,
-    }));
-  }
-
-  const creator = (sheet as any).profiles
-    ? {
-        name: (sheet as any).profiles.name,
-        avatar_url: (sheet as any).profiles.avatar_url,
-        role: (sheet as any).profiles.role,
-      }
-    : null;
-
-  return {
-    id: sheet.id,
-    slug: sheet.slug || sheet.id,
-    title: sheet.title,
-    description: sheet.description || '',
-    created_by: sheet.created_by,
-    created_at: sheet.created_at,
-    is_public: sheet.is_public,
-    published_at: sheet.published_at,
-    enrollment_access: sheet.enrollment_access,
-    attachment_url: sheet.attachment_url,
-    attachment_type: sheet.attachment_type,
-    youtube_url: sheet.youtube_url,
-    sheet_type: (sheet as any).sheet_type || 'DSA',
-    metadata: (sheet as any).metadata || {},
-    creator,
-    problems,
-    sqlQuestions,
-    roadmapLevels,
-    roadmapProblems,
-    aptitudeChapters,
-    aptitudeQuestions,
-    tcsData,
-  };
-}
+const getPublicSheetData = cache(async (slugOrId: string) => {
+  const serialized = await getSerializedPublicSheet(slugOrId);
+  return serialized ? serialized.payload : null;
+});
 
 export async function generateMetadata({
   params,
@@ -146,7 +49,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const sheet = await getPublicSheetData(slug);
+  const sheet: any = await getPublicSheetMetadata(slug);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartlearn.in';
 
   if (!sheet) {
@@ -162,18 +65,19 @@ export async function generateMetadata({
 
   const problemCount =
     sheet.sheet_type === 'SQL'
-      ? sheet.sqlQuestions.length
+      ? (sheet.metadata?.total_count || 530)
       : sheet.sheet_type === 'APTITUDE'
-      ? sheet.aptitudeQuestions.length
+      ? (sheet.metadata?.total_count || 1139)
       : sheet.sheet_type === 'TCS_PREP'
-      ? (sheet.tcsData?.questions.length || 1427)
+      ? (sheet.metadata?.total_count || 1427)
       : sheet.sheet_type === 'ROADMAP'
-      ? sheet.roadmapProblems.length
-      : sheet.problems.length;
-  const curator = sheet.creator?.name ? ` by ${sheet.creator.name}` : '';
+      ? (sheet.metadata?.total_count || 90)
+      : (Array.isArray(sheet.coding_sheet_problems) ? (sheet.coding_sheet_problems[0]?.count || 0) : 0);
+  const creatorName = Array.isArray(sheet.profiles) ? sheet.profiles[0]?.name : sheet.profiles?.name;
+  const curator = creatorName ? ` by ${creatorName}` : '';
   const title = `${sheet.title} (${problemCount} Problems) | Smart Learn Coding Sheet`;
   const description = sheet.description || `Practice curated coding problems${curator} on Smart Learn Code Arena.`;
-  const canonicalUrl = `${baseUrl}/share/sheet/${sheet.slug}`;
+  const canonicalUrl = `${baseUrl}/share/sheet/${sheet.slug || sheet.id}`;
 
   return {
     title,

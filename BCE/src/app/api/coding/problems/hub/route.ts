@@ -39,9 +39,12 @@ export async function GET(request: Request) {
       query = query.eq('difficulty', difficulty);
     }
 
-    // Search filter — search title, slug, external_problem_id
+    // Search filter — strip PostgREST logic chars before interpolating into .or()
     if (q) {
-      query = query.or(`title.ilike.%${q}%,slug.ilike.%${q}%,external_problem_id.ilike.%${q}%`);
+      const safeQ = q.replace(/[,()*%\\]/g, ' ').trim();
+      if (safeQ) {
+        query = query.or(`title.ilike.%${safeQ}%,slug.ilike.%${safeQ}%,external_problem_id.ilike.%${safeQ}%`);
+      }
     }
 
     // Tag filter — use contains for array column

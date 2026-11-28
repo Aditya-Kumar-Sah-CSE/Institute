@@ -3,6 +3,93 @@ import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { normalizeRole } from '@/lib/role-utils';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Reuse admin client across middleware invocations and short-TTL cache non-privileged student role lookups
+let sharedAdminClient: ReturnType<typeof createSupabaseAdmin> | null = null;
+function getMiddlewareAdminClient() {
+  if (!sharedAdminClient && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    sharedAdminClient = createSupabaseAdmin(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+  }
+  return sharedAdminClient;
+}
+
+const ROLE_CACHE_TTL_MS = 20_000;
+const roleCache = new Map<string, { role: string; instituteId: string | null; exp: number }>();
+
+const AUTH_CACHE_TTL_MS = 12_000;
+const AUTH_CACHE_MAX = 3000;
+const authVerifyCache = new Map<string, { user: any; exp: number }>();
+const authVerifyInFlight = new Map<string, Promise<{ user: any; error: any }>>();
+
+function decodeBase64UrlText(input: string): string {
+  const padded = input.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((input.length + 3) % 4);
+  return atob(padded);
+}
+
+function extractEdgeJwtExpMs(authCookies: { value: string }[]): number | null {
+  for (const c of authCookies) {
+    try {
+      let token = c.value;
+      if (token.startsWith('base64-')) {
+        token = decodeBase64UrlText(token.slice(7));
+      }
+      if (token.startsWith('{') || token.startsWith('[')) {
+        const parsed = JSON.parse(token);
+        const jwt = typeof parsed?.access_token === 'string' ? parsed.access_token : Array.isArray(parsed) ? parsed[0] : '';
+        if (typeof jwt === 'string' && jwt.includes('.')) token = jwt;
+      }
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(decodeBase64UrlText(parts[1]));
+        if (typeof payload?.exp === 'number') return payload.exp * 1000;
+      }
+    } catch {
+      // Ignore malformed chunks
+    }
+  }
+  return null;
+}
+
+async function computeAuthCookieDigest(authCookies: { name: string; value: string }[]): Promise<string | null> {
+  try {
+    if (!globalThis.crypto?.subtle) return null;
+    const raw = authCookies
+      .map((c) => `${c.name}=${c.value}`)
+      .sort()
+      .join(';');
+    const buf = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+    const bytes = new Uint8Array(buf);
+    let hex = '';
+    for (let i = 0; i < bytes.length; i++) {
+      hex += bytes[i].toString(16).padStart(2, '0');
+    }
+    return hex;
+  } catch {
+    return null;
+  }
+}
+
+function getCachedUserMeta(userId: string) {
+  const entry = roleCache.get(userId);
+  if (!entry) return null;
+  if (Date.now() > entry.exp) {
+    roleCache.delete(userId);
+    return null;
+  }
+  return entry;
+}
+
+function setCachedUserMeta(userId: string, role: string, instituteId: string | null) {
+  if (roleCache.size > 2000) {
+    const firstKey = roleCache.keys().next().value;
+    if (firstKey) roleCache.delete(firstKey);
+  }
+  roleCache.set(userId, { role, instituteId, exp: Date.now() + ROLE_CACHE_TTL_MS });
+}
+
 export async function updateSession(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const host = request.headers.get('host') || '';
@@ -42,10 +129,11 @@ export async function updateSession(request: NextRequest) {
     // Root-level app routes (route groups (dashboard), (admin), (instructor), (public))
     'courses', 'leaderboard', 'doubts', 'notices', 'profile', 'feedbacks',
     'share-doubt', 'users', 'batch', 'certificates', 'code-arena', 'sheets', 'share',
-    'games', 'settings',
-    // Misc root pages
+    'games', 'settings', 'verify', 'verify-email',
+    // Misc root pages & static metadata endpoints
     'admission', 'pwa-start', 'contact', 'institution-not-found', 'institution-disabled',
-    'privacy', 'terms', 'latex-editor', 'student', 'polls',
+    'privacy', 'terms', 'latex-editor', 'student', 'polls', 'robots.txt', 'sitemap.xml',
+    'manifest.json', 'sw.js',
   ];
   if (!tenantSlug && firstPathSegment && !reservedPaths.includes(firstPathSegment)) {
     tenantSlug = firstPathSegment;
@@ -94,31 +182,108 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  // Public routes and public/self-authenticated API routes that don't require middleware session gating
+  const publicRoutes = ['/', '/login', '/signup', '/verify-email', '/apply-instructor', '/forgot-password', '/reset-password', '/privacy', '/terms', '/pwa-start'];
+  const isPublicApi =
+    pathname === '/api/health' ||
+    pathname.startsWith('/api/public/') ||
+    pathname.startsWith('/api/cron/') ||
+    pathname === '/api/auth/callback' ||
+    pathname === '/api/coding/contests';
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    isPublicApi ||
+    (tenantSlug && (pathname === `/${tenantSlug}` || pathname === `/${tenantSlug}/verify-email`)) ||
+    pathname.startsWith('/share/') ||
+    pathname.startsWith('/sheets/') ||
+    pathname.startsWith('/verify/') ||
+    pathname.startsWith('/verify-email');
 
-  // If there's an auth error (e.g. invalid refresh token) or user is not logged in,
+  const reqCookies = request.cookies.getAll();
+  const authCookies = reqCookies.filter(
+    (c) => c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-')
+  );
+  const hasAuthCookie = authCookies.length > 0;
+
+  const bypassAuthCache =
+    (request.method !== 'GET' && request.method !== 'HEAD') ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/instructor') ||
+    pathname.startsWith('/super-admin') ||
+    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/api/super-admin') ||
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/settings');
+
+  // Fast path: skip remote Supabase auth call on public routes when visitor has no auth cookies
+  let user: any = null;
+  let authError: any = null;
+  if (hasAuthCookie || !isPublicRoute) {
+    let tokenKey: string | null = null;
+    if (hasAuthCookie && !bypassAuthCache) {
+      tokenKey = await computeAuthCookieDigest(authCookies);
+      if (tokenKey) {
+        const cachedAuth = authVerifyCache.get(tokenKey);
+        if (cachedAuth && Date.now() < cachedAuth.exp) {
+          user = cachedAuth.user;
+        } else if (cachedAuth) {
+          authVerifyCache.delete(tokenKey);
+        }
+      }
+    }
+
+    if (!user) {
+      if (tokenKey) {
+        let pending = authVerifyInFlight.get(tokenKey);
+        if (!pending) {
+          pending = (async () => {
+            try {
+              const authRes = await supabase.auth.getUser();
+              const verifiedUser = authRes.data?.user || null;
+              if (!authRes.error && verifiedUser) {
+                const jwtExpMs = extractEdgeJwtExpMs(authCookies);
+                const maxExp = jwtExpMs
+                  ? Math.min(Date.now() + AUTH_CACHE_TTL_MS, jwtExpMs)
+                  : Date.now() + AUTH_CACHE_TTL_MS;
+                if (maxExp > Date.now()) {
+                  if (authVerifyCache.size >= AUTH_CACHE_MAX) {
+                    const oldest = authVerifyCache.keys().next().value;
+                    if (oldest) authVerifyCache.delete(oldest);
+                  }
+                  authVerifyCache.set(tokenKey!, { user: verifiedUser, exp: maxExp });
+                }
+              }
+              return { user: verifiedUser, error: authRes.error || null };
+            } finally {
+              authVerifyInFlight.delete(tokenKey!);
+            }
+          })();
+          authVerifyInFlight.set(tokenKey, pending);
+        }
+        const resolved = await pending;
+        user = resolved.user;
+        authError = resolved.error;
+      } else {
+        const authRes = await supabase.auth.getUser();
+        user = authRes.data?.user || null;
+        authError = authRes.error || null;
+      }
+    }
+  }
+
+  // If there's an auth error (e.g. invalid refresh token) or user is not logged in while holding stale cookies,
   // clear stale auth cookies so the browser doesn't send broken tokens repeatedly.
-  if (authError || !user) {
-    const reqCookies = request.cookies.getAll();
+  if (hasAuthCookie && (authError || !user)) {
     reqCookies.forEach((c) => {
       if (c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-')) {
         supabaseResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
       }
     });
   }
-
-  // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/signup', '/verify-email', '/apply-instructor', '/forgot-password', '/reset-password', '/privacy', '/terms', '/pwa-start'];
-  const isPublicRoute = 
-    publicRoutes.includes(pathname) || 
-    (tenantSlug && (pathname === `/${tenantSlug}` || pathname === `/${tenantSlug}/verify-email`)) ||
-    pathname.startsWith('/share/') ||
-    pathname.startsWith('/sheets/') ||
-    pathname.startsWith('/verify/') ||
-    pathname.startsWith('/verify-email');
 
   // Helper function to redirect while preserving cookies
   const redirectWithCookies = (url: URL) => {
@@ -143,61 +308,69 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
+  const requiresFreshRoleCheck =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/instructor') ||
+    pathname.startsWith('/super-admin') ||
+    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/api/super-admin');
+
   let userRole = 'student';
-  if (user) {
-    // let profile: { role: string; institute_id?: string | null } | null = null;
-    let profile: { role: string; institute_id?: string | null } | null = null;
+  if (user && !isPublicApi) {
+    const cachedMeta = !requiresFreshRoleCheck ? getCachedUserMeta(user.id) : null;
+    let profile: { role: string; institute_id?: string | null } | null = cachedMeta
+      ? { role: cachedMeta.role, institute_id: cachedMeta.instituteId }
+      : null;
 
-    // 1. Try service role client first if SUPABASE_SERVICE_ROLE_KEY is set
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const adminClient = createSupabaseAdmin(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
-          { auth: { autoRefreshToken: false, persistSession: false } }
-        );
-        const { data, error } = await adminClient
-          .from('profiles')
-          
-          .select('role, institute_id')
-          .eq('id', user.id)
-          .single();
-
-        if (!error && data) {
-          profile = data;
-        }
-      } catch (err) {
-        console.error('[Middleware] Admin client fetch error:', err);
-      }
-    }
-
-    // 2. Fallback to standard client (works because profiles RLS allows SELECT for everyone)
     if (!profile) {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role, institute_id')
-          .eq('id', user.id)
-          .single();
+      const adminClient = getMiddlewareAdminClient();
+      if (adminClient) {
+        try {
+          const { data, error } = await adminClient
+            .from('profiles')
+            .select('role, institute_id')
+            .eq('id', user.id)
+            .single();
 
-        if (!error && data) {
-          profile = data;
-        } else if (error) {
-          console.error('[Middleware] Anon client profile fetch error:', error);
+          if (!error && data) {
+            profile = data as { role: string; institute_id?: string | null };
+          }
+        } catch (err) {
+          console.error('[Middleware] Admin client fetch error:', err);
         }
-      } catch (err) {
-        console.error('[Middleware] Anon client fetch exception:', err);
+      }
+
+      if (!profile) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role, institute_id')
+            .eq('id', user.id)
+            .single();
+
+          if (!error && data) {
+            profile = data as { role: string; institute_id?: string | null };
+          } else if (error) {
+            console.error('[Middleware] Anon client profile fetch error:', error);
+          }
+        } catch (err) {
+          console.error('[Middleware] Anon client fetch exception:', err);
+        }
+      }
+
+      if (profile) {
+        setCachedUserMeta(user.id, normalizeRole(profile.role), profile.institute_id || null);
       }
     }
-    
+
     if (profile) {
       userRole = normalizeRole(profile.role);
       if (profile.institute_id) {
         supabaseResponse.headers.set('x-tenant-id', profile.institute_id);
       }
     } else {
-      userRole = normalizeRole(user?.user_metadata?.role) || 'student';
-      console.warn('[Middleware] Profile not found, fallback to metadata role:', userRole);
+      // Never trust user_metadata.role on missing profile; default to least-privilege student
+      userRole = 'student';
     }
   }
 
@@ -246,7 +419,7 @@ export async function updateSession(request: NextRequest) {
           <div class="card">
             <h1>403</h1>
             <h2>Access Denied</h2>
-            <p>Only the Platform Owner (<code>${targetOwnerEmail}</code>) can access the Super Admin control area.</p>
+            <p>Only authorized Platform Owners can access the Super Admin control area.</p>
             <a href="/dashboard">Return to Dashboard</a>
           </div>
         </body>

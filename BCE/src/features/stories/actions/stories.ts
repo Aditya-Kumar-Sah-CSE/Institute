@@ -142,12 +142,7 @@ export async function fetchStoryFeed() {
   const { data: userData } = await supabase.auth.getUser();
   const currentUserId = userData?.user?.id;
 
-  // Clean up expired story items and stories first to ensure database and storage stay fully synchronized
-  await cleanupExpiredStories();
-
-  // We want to fetch all active stories, along with their items and views 
-  // Normally we would enforce privacy (e.g., Contacts only) - handled by RLS partially, but explicit joined checks help
-  
+  // Expired stories are excluded via .gt('expires_at', ...) below and cleaned up by /api/cron/cleanup-stories
   const { data: rawStories, error } = await supabase
     .from('stories')
     .select(`

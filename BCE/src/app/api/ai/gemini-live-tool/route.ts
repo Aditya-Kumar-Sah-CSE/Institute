@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getUser, createAdminClient } from '@/lib/supabase/server';
 import { AGENT_TOOLS, AgentToolResult } from '@/lib/ai/agent-tools-server';
-import { normalizeAgentRole, requireAgentPermission, canUseTool } from '@/lib/auth/agent-permissions';
+import { normalizeAgentRole, requireAgentPermission } from '@/lib/auth/agent-permissions';
+
+const CONFIRMATION_REQUIRED = new Set([
+  'writeFile', 'deleteFile', 'runTerminalCommand', 'clearPersistentMemory', 'clearMemory',
+  'launchPermittedApp', 'writeLocalWorkspaceFile'
+]);
 
 export async function POST(request: Request) {
   try {
@@ -18,13 +23,13 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         userRole = normalizeAgentRole(profile?.role || 'student');
-      } catch (err) {
+      } catch {
         userRole = 'student';
       }
     }
 
     const body = await request.json();
-    const { toolName, args = {}, pageContext } = body;
+    const { toolName, args = {}, pageContext, confirmed = false } = body;
 
     if (!toolName || typeof toolName !== 'string') {
       return NextResponse.json(
@@ -55,8 +60,19 @@ export async function POST(request: Request) {
       );
     }
 
+    if (CONFIRMATION_REQUIRED.has(toolName) && confirmed !== true) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'CONFIRMATION_REQUIRED',
+          message: 'Explicit confirmation is required before this action can run.'
+        },
+        { status: 400 }
+      );
+    }
+
     // Execute tool with authenticated user context
-    const result: AgentToolResult = await tool.execute(args, user || { id: 'guest' }, pageContext);
+    const result: AgentToolResult = await tool.execute(args, user || { id: 'guest' }, { ...(pageContext || {}), __agentConfirmation: confirmed === true });
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import CourseCatalog from '@/features/courses/components/CourseCatalog';
+import { getBatchCourseRatingStats } from '@/features/courses/actions/reviews';
 
 export default async function CoursesPage() {
   const supabase = await createClient();
@@ -59,6 +60,9 @@ export default async function CoursesPage() {
     });
   }
 
+  const courseIds = (courses || []).map((c: any) => c.id).filter(Boolean);
+  const ratingStatsMap = courseIds.length > 0 ? await getBatchCourseRatingStats(courseIds) : {};
+
   return (
     <div className="courses-page">
       <div className="page-header" style={{ marginBottom: 'var(--space-xl)' }}>
@@ -70,6 +74,7 @@ export default async function CoursesPage() {
         courses={courses || []} 
         enrollments={enrollmentsMap} 
         certificatesMap={certificatesMap}
+        ratingStatsMap={ratingStatsMap}
       />
     </div>
   );

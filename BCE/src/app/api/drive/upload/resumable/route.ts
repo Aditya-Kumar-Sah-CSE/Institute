@@ -109,6 +109,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'uploadUri and fileData (base64) are required' }, { status: 400 });
       }
 
+      let parsedUploadUrl: URL;
+      try {
+        parsedUploadUrl = new URL(uploadUri);
+      } catch {
+        return NextResponse.json({ error: 'Invalid upload URI' }, { status: 400 });
+      }
+      if (
+        parsedUploadUrl.protocol !== 'https:' ||
+        (parsedUploadUrl.hostname !== 'www.googleapis.com' && parsedUploadUrl.hostname !== 'upload.googleapis.com')
+      ) {
+        return NextResponse.json({ error: 'Forbidden upload URI host' }, { status: 403 });
+      }
+
       const buffer = Buffer.from(fileData, 'base64');
 
       const uploadRes = await fetch(uploadUri, {

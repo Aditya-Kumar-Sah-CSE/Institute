@@ -222,6 +222,35 @@ export async function fetchAllSolvedTcsProgress(
   );
 }
 
+export async function fetchTcsUserProgressAndAttempts(
+  supabase: any,
+  sheetId: string,
+  userId: string
+): Promise<{ progress: TcsProgress[]; mockAttempts: TcsMockAttempt[] }> {
+  if (!userId) return { progress: [], mockAttempts: [] };
+  const [progress, attemptsRes] = await Promise.all([
+    fetchPaginated<TcsProgress>((from, to) =>
+      supabase
+        .from('coding_sheet_tcs_progress')
+        .select('item_key, item_type, is_solved, is_bookmarked, selected_option, submitted_text, submitted_code, attempts, xp_awarded, solved_at')
+        .eq('sheet_id', sheetId)
+        .eq('user_id', userId)
+        .range(from, to)
+    ),
+    supabase
+      .from('coding_sheet_tcs_mock_attempts')
+      .select('*')
+      .eq('sheet_id', sheetId)
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: false }),
+  ]);
+
+  return {
+    progress,
+    mockAttempts: ((attemptsRes as any).data || []) as TcsMockAttempt[],
+  };
+}
+
 export async function fetchTcsPrepCoreData(
   supabase: any,
   sheetId: string,
@@ -233,7 +262,7 @@ export async function fetchTcsPrepCoreData(
   progress: TcsProgress[];
   mockAttempts: TcsMockAttempt[];
 }> {
-  const [chapRes, drillRes, mockRes, progress, attemptsRes] = await Promise.all([
+  const [chapRes, drillRes, mockRes, userData] = await Promise.all([
     supabase
       .from('coding_sheet_tcs_chapters')
       .select('id, chapter_number, title, category, question_count, start_q, end_q, theory, short_tricks, solved_example')
@@ -250,31 +279,16 @@ export async function fetchTcsPrepCoreData(
       .eq('sheet_id', sheetId)
       .order('paper_number', { ascending: true }),
     userId
-      ? fetchPaginated<TcsProgress>((from, to) =>
-          supabase
-            .from('coding_sheet_tcs_progress')
-            .select('item_key, item_type, is_solved, is_bookmarked, selected_option, submitted_text, submitted_code, attempts, xp_awarded, solved_at')
-            .eq('sheet_id', sheetId)
-            .eq('user_id', userId)
-            .range(from, to)
-        )
-      : Promise.resolve([]),
-    userId
-      ? supabase
-          .from('coding_sheet_tcs_mock_attempts')
-          .select('*')
-          .eq('sheet_id', sheetId)
-          .eq('user_id', userId)
-          .order('completed_at', { ascending: false })
-      : Promise.resolve({ data: [] }),
+      ? fetchTcsUserProgressAndAttempts(supabase, sheetId, userId)
+      : Promise.resolve({ progress: [] as TcsProgress[], mockAttempts: [] as TcsMockAttempt[] }),
   ]);
 
   return {
     chapters: (chapRes.data || []) as TcsChapter[],
     drills: (drillRes.data || []) as TcsDrill[],
     mockHeaders: (mockRes.data || []) as TcsMockPaperHeader[],
-    progress,
-    mockAttempts: ((attemptsRes as any).data || []) as TcsMockAttempt[],
+    progress: userData.progress,
+    mockAttempts: userData.mockAttempts,
   };
 }
 

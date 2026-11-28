@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 
 export async function PATCH(
@@ -27,11 +26,10 @@ export async function PATCH(
 
     // 2. Check authorization
     // Creator of the course/battle/sheet or admin/instructor
-    const isCreator = 
+    const isCreator =
       (cert.courses && cert.courses.created_by === user.id) ||
       (cert.coding_battles && (cert.coding_battles as any).created_by === user.id) ||
-      (cert.coding_sheets && (cert.coding_sheets as any).created_by === user.id) ||
-      cert.user_id === user.id; // Also allow the student to custom sign if they are authorized
+      (cert.coding_sheets && (cert.coding_sheets as any).created_by === user.id);
 
     const { data: profile } = await supabase
       .from('profiles')

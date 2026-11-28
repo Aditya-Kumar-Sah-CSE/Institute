@@ -230,6 +230,7 @@ export async function getDashboardPolls(courseIds: string[]) {
   if (!courseIds || courseIds.length === 0) return { data: null, error: null };
   
   const supabase = await createClient();
+  const nowIso = new Date().toISOString();
   
   const { data, error } = await supabase
     .from('course_polls')
@@ -248,7 +249,9 @@ export async function getDashboardPolls(courseIds: string[]) {
       )
     `)
     .in('course_id', courseIds)
-    .order('created_at', { ascending: false });
+    .or(`expires_at.is.null,expires_at.gte.${nowIso}`)
+    .order('created_at', { ascending: false })
+    .limit(10);
 
   if (error) {
     console.error('Error fetching dashboard polls:', error);

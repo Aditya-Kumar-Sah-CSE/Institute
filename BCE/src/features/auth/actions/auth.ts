@@ -343,59 +343,49 @@ export async function getProfile() {
 
 export async function awardXP(userId: string, amount: number, action: string, sourceType?: string, sourceId?: string) {
   const supabase = await createAdminClient();
+  const safeAmount = Math.max(0, Math.floor(Number(amount) || 0));
 
-  // Log the XP
-  await supabase.from('xp_log').insert({
-    user_id: userId,
-    xp_amount: amount,
-    action,
-    source_type: sourceType,
-    source_id: sourceId,
-  });
+  // Fire-and-forget log + atomic SQL XP increment via RPC in parallel
+  const [, rpcRes] = await Promise.all([
+    supabase.from('xp_log').insert({
+      user_id: userId,
+      xp_amount: safeAmount,
+      action,
+      source_type: sourceType,
+      source_id: sourceId,
+    }),
+    supabase.rpc('increment_profile_xp', { p_user_id: userId, p_amount: safeAmount }),
+  ]);
 
-  // Atomically increment XP to avoid race conditions (read-modify-write bug)
-  // Use rpc to call a SQL function, or update with raw increment
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('xp')
-    .eq('id', userId)
-    .single();
+  let newXP: number | null = typeof rpcRes.data === 'number' ? rpcRes.data : null;
 
-  if (!profile) return;
-
-  const newXP = profile.xp + amount;
-  const newLevel = getLevelFromXP(newXP);
-
-  // Update profile — using the calculated value but with an eq check
-  // to detect concurrent modifications (optimistic locking)
-  const { data: updated, error } = await supabase
-    .from('profiles')
-    .update({ xp: newXP, level: newLevel, last_active_at: new Date().toISOString() })
-    .eq('id', userId)
-    .eq('xp', profile.xp) // Optimistic lock: only update if XP hasn't changed
-    .select('xp')
-    .single();
-
-  // If optimistic lock failed (concurrent update), retry with fresh data
-  if (error || !updated) {
+  if (newXP === null) {
     const { data: freshProfile } = await supabase
       .from('profiles')
       .select('xp')
       .eq('id', userId)
       .single();
-
-    if (freshProfile) {
-      const retryXP = freshProfile.xp + amount;
-      const retryLevel = getLevelFromXP(retryXP);
-      await supabase
-        .from('profiles')
-        .update({ xp: retryXP, level: retryLevel, last_active_at: new Date().toISOString() })
-        .eq('id', userId);
-      return { newXP: retryXP, newLevel: retryLevel };
-    }
+    if (!freshProfile) return;
+    const fallbackXP: number = Number(freshProfile.xp || 0) + safeAmount;
+    const retryLevel = getLevelFromXP(fallbackXP);
+    await supabase
+      .from('profiles')
+      .update({ xp: fallbackXP, level: retryLevel, last_active_at: new Date().toISOString() })
+      .eq('id', userId);
+    return { newXP: fallbackXP, newLevel: retryLevel };
   }
 
-  return { newXP, newLevel };
+  const resolvedXP: number = newXP;
+  const newLevel = getLevelFromXP(resolvedXP);
+  // Keep profile.level synced cleanly without blocking caller if level changed
+  supabase
+    .from('profiles')
+    .update({ level: newLevel })
+    .eq('id', userId)
+    .neq('level', newLevel)
+    .then(() => {});
+
+  return { newXP: resolvedXP, newLevel };
 }
 
 export async function updateAvatarUrl(userId: string, avatarUrl: string) {

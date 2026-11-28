@@ -1,9 +1,10 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { awardXP } from '@/features/auth/actions/auth';
+import { getSheetServiceClient } from '@/lib/sheet-cache';
 import { SheetReview } from '@/types/database';
 
 export interface SheetReviewStats {
@@ -91,6 +92,7 @@ export async function submitOrUpdateSheetReviewAction(
     }
   }
 
+  revalidateTag('sheet-reviews', { expire: 0 });
   revalidatePath(`/code-arena/sheets/${sheetId}`);
   revalidatePath(`/code-arena/sheets`);
   return { success: true };
@@ -136,6 +138,7 @@ export async function deleteSheetReviewAction(reviewId: string, sheetId: string)
     return { error: error.message };
   }
 
+  revalidateTag('sheet-reviews', { expire: 0 });
   revalidatePath(`/code-arena/sheets/${sheetId}`);
   revalidatePath(`/code-arena/sheets`);
   return { success: true };
@@ -174,71 +177,85 @@ export async function moderateSheetReviewStatusAction(
     return { error: error.message };
   }
 
+  revalidateTag('sheet-reviews', { expire: 0 });
   revalidatePath(`/code-arena/sheets/${sheetId}`);
   revalidatePath(`/code-arena/sheets`);
   return { success: true };
 }
 
+const getCachedSheetReviewsRaw = unstable_cache(
+  async (sheetId: string) => {
+    const adminSb = getSheetServiceClient();
+    const { data: reviewsData, error } = await adminSb
+      .from('sheet_reviews')
+      .select('*, profile:profiles(id, name, avatar_url, role, institute_id)')
+      .eq('sheet_id', sheetId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching sheet reviews:', error);
+    }
+
+    const allReviews: SheetReview[] = (reviewsData || []).map((r: any) => ({
+      id: r.id,
+      sheet_id: r.sheet_id,
+      user_id: r.user_id,
+      rating: r.rating,
+      review_text: r.review_text,
+      status: r.status,
+      is_public: r.is_public,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      profile: r.profile ? {
+        id: r.profile.id,
+        name: r.profile.name,
+        avatar_url: r.profile.avatar_url,
+        role: r.profile.role,
+        institute_id: r.profile.institute_id
+      } : null
+    }));
+
+    const publishedReviews = allReviews.filter(r => r.status === 'published' && r.is_public);
+    const totalReviews = publishedReviews.length;
+
+    const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let sumRating = 0;
+
+    publishedReviews.forEach(r => {
+      sumRating += r.rating;
+      if (r.rating >= 1 && r.rating <= 5) {
+        breakdown[r.rating as keyof typeof breakdown]++;
+      }
+    });
+
+    const averageRating = totalReviews > 0 ? parseFloat((sumRating / totalReviews).toFixed(1)) : 0;
+
+    return {
+      reviews: allReviews,
+      publishedReviews,
+      stats: {
+        averageRating,
+        totalReviews,
+        breakdown
+      }
+    };
+  },
+  ['sheet-reviews-by-id-v1'],
+  { revalidate: 60, tags: ['sheet-reviews'] }
+);
+
 /**
  * Get sheet review statistics & public reviews list
  */
 export async function getSheetReviewsData(sheetId: string, currentUserId?: string) {
-  const adminSb = await createAdminClient();
-
-  const { data: reviewsData, error } = await adminSb
-    .from('sheet_reviews')
-    .select('*, profile:profiles(id, name, avatar_url, role, institute_id)')
-    .eq('sheet_id', sheetId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching sheet reviews:', error);
-  }
-
-  const allReviews: SheetReview[] = (reviewsData || []).map((r: any) => ({
-    id: r.id,
-    sheet_id: r.sheet_id,
-    user_id: r.user_id,
-    rating: r.rating,
-    review_text: r.review_text,
-    status: r.status,
-    is_public: r.is_public,
-    created_at: r.created_at,
-    updated_at: r.updated_at,
-    profile: r.profile ? {
-      id: r.profile.id,
-      name: r.profile.name,
-      avatar_url: r.profile.avatar_url,
-      role: r.profile.role,
-      institute_id: r.profile.institute_id
-    } : null
-  }));
-
-  const publishedReviews = allReviews.filter(r => r.status === 'published' && r.is_public);
-  const totalReviews = publishedReviews.length;
-
-  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-  let sumRating = 0;
-
-  publishedReviews.forEach(r => {
-    sumRating += r.rating;
-    if (r.rating >= 1 && r.rating <= 5) {
-      breakdown[r.rating as keyof typeof breakdown]++;
-    }
-  });
-
-  const averageRating = totalReviews > 0 ? parseFloat((sumRating / totalReviews).toFixed(1)) : 0;
-  const userReview = currentUserId ? allReviews.find(r => r.user_id === currentUserId) : null;
+  const cached = await getCachedSheetReviewsRaw(sheetId);
+  const userReview = currentUserId ? cached.reviews.find(r => r.user_id === currentUserId) || null : null;
 
   return {
-    reviews: allReviews,
-    publishedReviews,
+    reviews: cached.reviews,
+    publishedReviews: cached.publishedReviews,
     userReview,
-    stats: {
-      averageRating,
-      totalReviews,
-      breakdown
-    }
+    stats: cached.stats,
   };
 }
 

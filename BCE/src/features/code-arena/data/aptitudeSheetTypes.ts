@@ -67,6 +67,29 @@ export async function fetchAllAptitudeQuestions(
   return out;
 }
 
+export async function fetchAptitudeUserProgress(
+  supabase: any,
+  sheetId: string,
+  userId: string
+): Promise<AptitudeProgress[]> {
+  if (!userId) return [];
+  const PAGE = 1000;
+  const out: AptitudeProgress[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('coding_sheet_aptitude_progress')
+      .select('question_number, is_solved, is_bookmarked, selected_option, attempts, xp_awarded, solved_at')
+      .eq('sheet_id', sheetId)
+      .eq('user_id', userId)
+      .order('question_number', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    out.push(...(data as AptitudeProgress[]));
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
+
 export async function fetchAptitudeChaptersAndProgress(
   supabase: any,
   sheetId: string,
@@ -81,24 +104,7 @@ export async function fetchAptitudeChaptersAndProgress(
     .eq('sheet_id', sheetId)
     .order('chapter_number', { ascending: true });
 
-  const progressPromise = (async () => {
-    if (!userId) return [];
-    const PAGE = 1000;
-    const out: AptitudeProgress[] = [];
-    for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from('coding_sheet_aptitude_progress')
-        .select('question_number, is_solved, is_bookmarked, selected_option, attempts, xp_awarded, solved_at')
-        .eq('sheet_id', sheetId)
-        .eq('user_id', userId)
-        .order('question_number', { ascending: true })
-        .range(from, from + PAGE - 1);
-      if (error || !data || data.length === 0) break;
-      out.push(...(data as AptitudeProgress[]));
-      if (data.length < PAGE) break;
-    }
-    return out;
-  })();
+  const progressPromise = userId ? fetchAptitudeUserProgress(supabase, sheetId, userId) : Promise.resolve([]);
 
   const [{ data: chapData }, progress] = await Promise.all([chaptersPromise, progressPromise]);
   return {

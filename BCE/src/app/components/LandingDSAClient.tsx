@@ -13,7 +13,6 @@ export default function LandingDSAClient({
 }) {
   const [sheets, setSheets] = useState(initialSheets);
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialSheets.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
   const [exploringSheetId, setExploringSheetId] = useState<string | null>(null);
@@ -80,7 +79,6 @@ export default function LandingDSAClient({
   const loadMore = useCallback(async (currentPage: number) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
-    setLoading(true);
     
     try {
       const nextPage = currentPage + 1;
@@ -100,7 +98,6 @@ export default function LandingDSAClient({
       setHasMore(false);
     }
     
-    setLoading(false);
     loadingRef.current = false;
   }, []);
 
@@ -134,11 +131,14 @@ export default function LandingDSAClient({
     carouselRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
-  // Mouse wheel handler for desktop horizontal scroll
+  // Mouse wheel handler: support horizontal swipe or Shift+Wheel without hijacking vertical scroll
   const handleWheel = (e: React.WheelEvent) => {
     if (!carouselRef.current) return;
-    if (e.deltaY !== 0) {
+    if (e.shiftKey && e.deltaY !== 0) {
+      e.preventDefault();
       carouselRef.current.scrollLeft += e.deltaY * 1.2;
+    } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      carouselRef.current.scrollLeft += e.deltaX;
     }
   };
 

@@ -1,11 +1,50 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { awardXP } from '@/features/auth/actions/auth';
 import { XP_VALUES } from '@/lib/constants';
+import { getSheetServiceClient } from '@/lib/sheet-cache';
 
-export async function getGlobalPolls() {
+const getCachedActiveGlobalPolls = unstable_cache(
+  async (limit: number) => {
+    const supabase = getSheetServiceClient();
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('global_polls')
+      .select(`
+        *,
+        profiles:created_by ( name, role, email ),
+        options:global_poll_options (
+          id,
+          option_text,
+          votes:global_poll_votes (
+            id,
+            user_id,
+            profiles:user_id ( name )
+          )
+        )
+      `)
+      .or(`expires_at.is.null,expires_at.gte.${nowIso}`)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching active global polls:', error);
+      return [] as any[];
+    }
+
+    return (data as any[]) || [];
+  },
+  ['global-polls-active-v1'],
+  { revalidate: 20, tags: ['global-polls'] }
+);
+
+export async function getGlobalPolls(options?: { activeOnly?: boolean; limit?: number }) {
+  if (options?.activeOnly) {
+    return getCachedActiveGlobalPolls(options.limit ?? 10);
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -23,7 +62,8 @@ export async function getGlobalPolls() {
         )
       )
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(options?.limit ?? 30);
 
   if (error) {
     console.error('Error fetching global polls:', error);
@@ -100,6 +140,7 @@ export async function createGlobalPoll(
 
     // Notifications are handled automatically by the DB trigger `trigger_notify_on_new_global_poll`
 
+    revalidateTag('global-polls', { expire: 0 });
     revalidatePath('/dashboard');
     revalidatePath('/polls');
     revalidatePath('/admin/polls');
@@ -180,6 +221,7 @@ export async function submitGlobalPollVote(pollId: string, optionIds: string[]) 
       }
     }
 
+    revalidateTag('global-polls', { expire: 0 });
     revalidatePath('/dashboard');
     revalidatePath('/polls');
     revalidatePath('/admin/polls');
@@ -207,6 +249,7 @@ export async function deleteGlobalPoll(pollId: string) {
 
     if (error) throw error;
 
+    revalidateTag('global-polls', { expire: 0 });
     revalidatePath('/dashboard');
     revalidatePath('/polls');
     revalidatePath('/admin/polls');

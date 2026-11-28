@@ -1,4 +1,5 @@
-import { createClient, getUser } from '@/lib/supabase/server';
+import { getUser } from '@/lib/supabase/server';
+import { getCompanySettingsCached } from '@/lib/sheet-cache';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
@@ -23,7 +24,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
   const user = await getUser();
 
   if (!user) {
@@ -31,10 +31,10 @@ export default async function DashboardLayout({
   }
 
   const { getOrCreateProfile } = await import('@/lib/profile');
-  const profilePromise = getOrCreateProfile(user);
-  const settingsPromise = supabase.from('company_settings').select('company_name, logo_url').single();
-
-  const [profile, { data: settings }] = await Promise.all([profilePromise, settingsPromise]);
+  const [profile, settings] = await Promise.all([
+    getOrCreateProfile(user),
+    getCompanySettingsCached(),
+  ]);
 
   if (!profile) {
     // Edge case if profile isn't created yet (e.g. deleted from DB manually but not from Auth)

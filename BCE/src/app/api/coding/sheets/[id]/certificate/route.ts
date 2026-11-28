@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { fetchAllSolvedAptitudeProgress } from '@/features/code-arena/data/aptitudeSheetTypes';
-import { fetchAllSolvedTcsProgress } from '@/features/code-arena/data/tcsPrepTypes';
 
 export async function GET(
   request: Request,
@@ -87,23 +85,12 @@ export async function POST(
         );
       }
 
-      const { data: allSqlProgress } = await supabase
-        .from('coding_sheet_sql_progress')
-        .select('user_id, question_number')
-        .eq('sheet_id', sheetId)
-        .eq('is_solved', true);
-
-      if (allSqlProgress) {
-        const solverCounts: Record<string, Set<number>> = {};
-        allSqlProgress.forEach((row) => {
-          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
-          solverCounts[row.user_id].add(row.question_number);
-        });
-        const completers = Object.entries(solverCounts)
-          .filter(([, set]) => set.size >= totalProblems)
-          .map(([uid]) => uid);
-        rank = Math.max(1, completers.indexOf(user.id) + 1);
-      }
+      const { data: rankData } = await supabase.rpc('get_user_sheet_completion_rank', {
+        p_sheet_id: sheetId,
+        p_sheet_type: 'SQL',
+        p_user_id: user.id,
+      });
+      rank = typeof rankData === 'number' && rankData > 0 ? rankData : 1;
     } else if ((sheet as any).sheet_type === 'APTITUDE') {
       const { count: aptTotal } = await supabase
         .from('coding_sheet_aptitude_questions')
@@ -130,18 +117,12 @@ export async function POST(
         );
       }
 
-      const allAptProgress = await fetchAllSolvedAptitudeProgress(supabase, sheetId, false);
-      if (allAptProgress.length > 0) {
-        const solverCounts: Record<string, Set<number>> = {};
-        allAptProgress.forEach((row) => {
-          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
-          solverCounts[row.user_id].add(row.question_number);
-        });
-        const completers = Object.entries(solverCounts)
-          .filter(([, set]) => set.size >= totalProblems)
-          .map(([uid]) => uid);
-        rank = Math.max(1, completers.indexOf(user.id) + 1);
-      }
+      const { data: rankData } = await supabase.rpc('get_user_sheet_completion_rank', {
+        p_sheet_id: sheetId,
+        p_sheet_type: 'APTITUDE',
+        p_user_id: user.id,
+      });
+      rank = typeof rankData === 'number' && rankData > 0 ? rankData : 1;
     } else if ((sheet as any).sheet_type === 'TCS_PREP') {
       const { count: tcsTotal } = await supabase
         .from('coding_sheet_tcs_questions')
@@ -169,19 +150,12 @@ export async function POST(
         );
       }
 
-      const allTcsProgress = await fetchAllSolvedTcsProgress(supabase, sheetId, false);
-      if (allTcsProgress.length > 0) {
-        const solverCounts: Record<string, Set<string>> = {};
-        allTcsProgress.forEach((row) => {
-          if (row.item_type !== 'MCQ') return;
-          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
-          solverCounts[row.user_id].add(row.item_key);
-        });
-        const completers = Object.entries(solverCounts)
-          .filter(([, set]) => set.size >= totalProblems)
-          .map(([uid]) => uid);
-        rank = Math.max(1, completers.indexOf(user.id) + 1);
-      }
+      const { data: rankData } = await supabase.rpc('get_user_sheet_completion_rank', {
+        p_sheet_id: sheetId,
+        p_sheet_type: 'TCS_PREP',
+        p_user_id: user.id,
+      });
+      rank = typeof rankData === 'number' && rankData > 0 ? rankData : 1;
     } else if ((sheet as any).sheet_type === 'ROADMAP') {
       const { count: rmTotal } = await supabase
         .from('coding_sheet_roadmap_problems')
@@ -208,23 +182,12 @@ export async function POST(
         );
       }
 
-      const { data: allRmProgress } = await supabase
-        .from('coding_sheet_roadmap_progress')
-        .select('user_id, problem_code')
-        .eq('sheet_id', sheetId)
-        .eq('is_solved', true);
-
-      if (allRmProgress) {
-        const solverCounts: Record<string, Set<string>> = {};
-        allRmProgress.forEach((row) => {
-          if (!solverCounts[row.user_id]) solverCounts[row.user_id] = new Set();
-          solverCounts[row.user_id].add(row.problem_code);
-        });
-        const completers = Object.entries(solverCounts)
-          .filter(([, set]) => set.size >= totalProblems)
-          .map(([uid]) => uid);
-        rank = Math.max(1, completers.indexOf(user.id) + 1);
-      }
+      const { data: rankData } = await supabase.rpc('get_user_sheet_completion_rank', {
+        p_sheet_id: sheetId,
+        p_sheet_type: 'ROADMAP',
+        p_user_id: user.id,
+      });
+      rank = typeof rankData === 'number' && rankData > 0 ? rankData : 1;
     } else {
       // 2. Get DSA sheet problems
       const { data: sheetProblems } = await supabase
@@ -262,26 +225,12 @@ export async function POST(
         );
       }
 
-      // 5. Calculate rank among all students who solved problems from this sheet
-      const { data: allSubs } = await supabase
-        .from('coding_submissions')
-        .select('student_id, problem_id, status')
-        .in('problem_id', problemIds)
-        .eq('status', 'ACCEPTED');
-
-      if (allSubs) {
-        const studentSolved: Record<string, Set<string>> = {};
-        allSubs.forEach(s => {
-          if (!studentSolved[s.student_id]) studentSolved[s.student_id] = new Set();
-          studentSolved[s.student_id].add(s.problem_id);
-        });
-
-        const completers = Object.entries(studentSolved)
-          .filter(([, solved]) => solved.size >= totalProblems)
-          .map(([sid]) => sid);
-
-        rank = Math.max(1, completers.indexOf(user.id) + 1);
-      }
+      const { data: rankData } = await supabase.rpc('get_user_sheet_completion_rank', {
+        p_sheet_id: sheetId,
+        p_sheet_type: 'DSA',
+        p_user_id: user.id,
+      });
+      rank = typeof rankData === 'number' && rankData > 0 ? rankData : 1;
     }
 
     // 6. Get company name

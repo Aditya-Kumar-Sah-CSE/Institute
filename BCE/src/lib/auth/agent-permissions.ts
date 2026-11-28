@@ -142,14 +142,14 @@ export const TOOL_PERMISSIONS: Record<string, AppRole> = {
   getMyGoals: 'student',
   createGoal: 'student',
   createCodingSheet: 'instructor',
-  addProblemsToSheet: 'student',
+  addProblemsToSheet: 'instructor',
   getDSASheetDetails: 'student',
   runSafeSQLQuery: 'student',
   getNotices: 'student',
   readLatexCode: 'student',
   editLatexCode: 'student',
   getLeaderboardRank: 'student',
-  runAutonomousCodingAgent: 'student',
+  runAutonomousCodingAgent: 'superadmin',
 
   // Shared agent tools not tied to a student workflow
   scanLivePageElements: 'guest',

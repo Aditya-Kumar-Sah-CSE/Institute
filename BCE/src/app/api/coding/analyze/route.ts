@@ -31,24 +31,7 @@ async function getAvailableAiCredentials(userId?: string): Promise<{ provider: '
     }
   }
 
-  // 2. Try platform connected key in user_ai_providers (e.g. admin or faculty key)
-  const { data: allKeys } = await admin
-    .from('user_ai_providers')
-    .select('provider, encrypted_api_key')
-    .order('created_at', { ascending: false });
-
-  if (allKeys && allKeys.length > 0) {
-    const groqKey = allKeys.find(k => k.provider === 'groq');
-    if (groqKey?.encrypted_api_key) {
-      return { provider: 'groq', apiKey: decryptKey(groqKey.encrypted_api_key) };
-    }
-    const gemKey = allKeys.find(k => k.provider === 'gemini');
-    if (gemKey?.encrypted_api_key) {
-      return { provider: 'gemini', apiKey: decryptKey(gemKey.encrypted_api_key) };
-    }
-  }
-
-  // 3. Fallback to process.env
+  // 2. Fallback to platform environment keys only (never expose another user's private BYOK key)
   if (process.env.GROQ_API_KEY) {
     return { provider: 'groq', apiKey: process.env.GROQ_API_KEY };
   }
@@ -64,6 +47,12 @@ export async function POST(request: Request) {
     const { user, supabase } = await getCodeArenaActor();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { checkRateLimit } = await import('@/lib/rate-limit');
+    const rl = checkRateLimit(`code-analyze:${user.id}`, 20, 60_000);
+    if (!rl.success) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const body = await request.json();

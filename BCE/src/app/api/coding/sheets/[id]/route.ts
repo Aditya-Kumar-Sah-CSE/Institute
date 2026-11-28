@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { canManageSheet, getCodeArenaActor } from '@/features/code-arena/server';
 import { generateUniqueSheetSlug } from '@/lib/slug-utils';
+import { invalidateSheetCache } from '@/lib/sheet-cache';
 import { createClient as createRawClient } from '@supabase/supabase-js';
 import {
   fetchAllAptitudeQuestions,
@@ -151,7 +152,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user, isInstructor } = await getCodeArenaActor();
+  const { user, isInstructor } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const serviceRoleClient = createRawClient(
@@ -228,6 +229,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           .eq('sheet_id', sheet.id)
           .eq('question_number', qNum);
         if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
 
@@ -249,6 +251,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           .eq('sheet_id', sheet.id)
           .eq('drill_code', drillCode);
         if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
 
@@ -274,6 +277,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           .eq('sheet_id', sheet.id)
           .eq('question_number', qNum);
         if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
 
@@ -297,6 +301,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           .eq('sheet_id', sheet.id)
           .eq('question_number', qNum);
         if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
 
@@ -319,6 +324,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           .eq('sheet_id', sheet.id)
           .eq('problem_code', code);
         if (qErr) return NextResponse.json({ success: false, error: { message: qErr.message } }, { status: 400 });
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
 
@@ -348,6 +354,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             .eq('problem_id', pId);
           if (lErr) return NextResponse.json({ success: false, error: { message: lErr.message } }, { status: 400 });
         }
+        invalidateSheetCache(sheet.id, sheet.slug);
         return NextResponse.json({ success: true });
       }
     }
@@ -366,6 +373,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (updateProblemError) {
         return NextResponse.json({ success: false, error: { message: updateProblemError.message } }, { status: 400 });
       }
+      invalidateSheetCache(sheet.id, sheet.slug);
       return NextResponse.json({ success: true });
     }
 
@@ -454,6 +462,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     }
 
+    invalidateSheetCache(sheet.id, updates.slug || sheet.slug);
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: { message: err.message || 'Update failed' } }, { status: 500 });
@@ -462,7 +471,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user, isInstructor } = await getCodeArenaActor();
+  const { user, isInstructor } = await getCodeArenaActor();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const serviceRoleClient = createRawClient(
@@ -471,7 +480,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   );
 
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  let sheetQuery = serviceRoleClient.from('coding_sheets').select('id, created_by');
+  let sheetQuery = serviceRoleClient.from('coding_sheets').select('id, slug, created_by');
   if (isUUID) {
     sheetQuery = sheetQuery.eq('id', id);
   } else {
@@ -495,5 +504,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ success: false, error: { message: deleteError.message } }, { status: 400 });
   }
 
+  invalidateSheetCache(sheet.id, sheet.slug);
   return NextResponse.json({ success: true });
 }

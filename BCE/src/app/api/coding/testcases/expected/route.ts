@@ -2,12 +2,18 @@ import { NextResponse } from 'next/server';
 import { getCodeArenaActor } from '@/features/code-arena/server';
 import { executeCodeResiliently } from '@/features/code-arena/execution-engine';
 import { GoogleGenAI } from '@google/genai';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
     const { user, supabase } = await getCodeArenaActor();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const rl = checkRateLimit(`expected-tc:${user.id}`, 20, 60_000);
+    if (!rl.success) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const { problemId, input } = await request.json();
@@ -17,11 +23,12 @@ export async function POST(request: Request) {
 
     const trimmedInput = String(input).trim();
 
-    // 1. Check coding_problem_test_cases for an exact input match
+    // 1. Check ONLY visible sample test cases (never leak hidden test case expected outputs)
     const { data: dbCases } = await supabase
       .from('coding_problem_test_cases')
-      .select('input, expected_output, is_hidden')
+      .select('input, expected_output')
       .eq('problem_id', problemId)
+      .eq('is_hidden', false)
       .order('order_index', { ascending: true });
 
     if (dbCases && dbCases.length > 0) {
@@ -120,17 +127,11 @@ ${trimmedInput}`;
       }
     }
 
-    // 5. If everything else fails, but we have a boundary hidden testcase in DB, return that as closest reference
-    if (dbCases && dbCases.length > 0) {
-      const lastHidden = dbCases.filter(c => c.is_hidden).pop() || dbCases[dbCases.length - 1];
-      if (lastHidden?.expected_output) {
-        return NextResponse.json({
-          success: true,
-          expectedOutput: lastHidden.expected_output,
-          source: 'boundary_fallback',
-        });
-      }
-    }
+    return NextResponse.json({
+      success: false,
+      expectedOutput: null,
+      message: 'Could not determine expected output for custom input automatically.',
+    });
 
     return NextResponse.json({ success: false, expectedOutput: '' });
   } catch (err: any) {

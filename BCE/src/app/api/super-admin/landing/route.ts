@@ -1,11 +1,131 @@
-import { NextResponse } from 'next/server'; import { requireSuperAdmin } from '@/lib/super-admin'; import { createAdminClient } from '@/lib/supabase/server'; import { revalidatePath } from 'next/cache';
-const clean = (value: unknown, max = 500) => typeof value === 'string' ? value.trim().slice(0, max) : '';
-export async function GET() { await requireSuperAdmin(); const db = await createAdminClient(); const [content, cards, features, settings] = await Promise.all([db.from('landing_content').select('*').eq('id', 'default').maybeSingle(), db.from('landing_gallery').select('*').order('sort_order'), db.from('landing_core_features').select('*').order('sort_order'), db.from('company_settings').select('company_name,tagline,logo_url').maybeSingle()]); return NextResponse.json({ content: content.data, cards: cards.data || [], features: features.data || [], branding: settings.data || {} }); }
-export async function POST(request: Request) { const admin = await requireSuperAdmin(); const db = await createAdminClient(); const body = await request.json(); const kind = body.kind; let error: any;
-  if (kind === 'hero') ({ error } = await db.from('landing_content').upsert({ id: 'default', hero_badge: clean(body.hero_badge), hero_heading: clean(body.hero_heading), hero_highlight: clean(body.hero_highlight), hero_description: clean(body.hero_description, 2000), hero_image_url: clean(body.hero_image_url, 2000), hero_cta_text: clean(body.hero_cta_text), hero_cta_link: clean(body.hero_cta_link, 500), hero_cta_text_2: clean(body.hero_cta_text_2), hero_cta_link_2: clean(body.hero_cta_link_2, 500), updated_by: admin.id, updated_at: new Date().toISOString() }));
-  else if (kind === 'branding') ({ error } = await db.from('company_settings').update({ company_name: clean(body.company_name, 120), tagline: clean(body.tagline, 300), logo_url: clean(body.logo_url, 2000) }).neq('id', '00000000-0000-0000-0000-000000000000'));
-  else if (kind === 'card') ({ error } = await db.from('landing_gallery').upsert({ id: body.id || undefined, title: clean(body.title, 160), description: clean(body.description, 4000), image_url: clean(body.image_url, 2000), sort_order: Number(body.sort_order) || 0, is_active: Boolean(body.is_active) }));
-  else if (kind === 'feature') ({ error } = await db.from('landing_core_features').upsert({ id: body.id || undefined, title: clean(body.title, 160), description: clean(body.description, 1000), icon: clean(body.icon, 60) || 'Star', image_url: clean(body.image_url, 2000) || null, sort_order: Number(body.sort_order) || 0, is_active: Boolean(body.is_active) }));
-  else return NextResponse.json({ error: 'Unknown content type' }, { status: 400 });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 }); revalidatePath('/'); return NextResponse.json({ ok: true }); }
-export async function DELETE(request: Request) { await requireSuperAdmin(); const { kind, id } = await request.json(); if (!id || !['card', 'feature'].includes(kind)) return NextResponse.json({ error: 'Invalid deletion' }, { status: 400 }); const db = await createAdminClient(); const { error } = await db.from(kind === 'card' ? 'landing_gallery' : 'landing_core_features').delete().eq('id', id); if (error) return NextResponse.json({ error: error.message }, { status: 400 }); revalidatePath('/'); return NextResponse.json({ ok: true }); }
+import { NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/super-admin';
+import { createAdminClient } from '@/lib/supabase/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
+
+const clean = (value: unknown, max = 500) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
+
+function refreshLandingCache() {
+  try {
+    revalidateTag('landing-shell', { expire: 0 });
+  } catch {
+    /* ignore outside request cache context */
+  }
+  revalidatePath('/');
+}
+
+function authErrorResponse(err: unknown) {
+  const errObj = err as { status?: number; message?: string } | null;
+  const msg = errObj?.message || 'Unauthorized';
+  const status =
+    typeof errObj?.status === 'number' && errObj.status >= 400 && errObj.status < 600
+      ? errObj.status
+      : msg.includes('Forbidden') || msg.includes('Super Admin access required')
+      ? 403
+      : 401;
+  return NextResponse.json({ error: msg }, { status });
+}
+
+export async function GET() {
+  try {
+    await requireSuperAdmin();
+    const db = await createAdminClient();
+    const [content, cards, features, settings] = await Promise.all([
+      db.from('landing_content').select('*').eq('id', 'default').maybeSingle(),
+      db.from('landing_gallery').select('*').order('sort_order'),
+      db.from('landing_core_features').select('*').order('sort_order'),
+      db.from('company_settings').select('company_name,tagline,logo_url').maybeSingle(),
+    ]);
+    return NextResponse.json({
+      content: content.data,
+      cards: cards.data || [],
+      features: features.data || [],
+      branding: settings.data || {},
+    });
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const admin = await requireSuperAdmin();
+    const db = await createAdminClient();
+    const body = await request.json();
+    const kind = body.kind;
+    let error: any;
+
+    if (kind === 'hero') {
+      ({ error } = await db.from('landing_content').upsert({
+        id: 'default',
+        hero_badge: clean(body.hero_badge),
+        hero_heading: clean(body.hero_heading),
+        hero_highlight: clean(body.hero_highlight),
+        hero_description: clean(body.hero_description, 2000),
+        hero_image_url: clean(body.hero_image_url, 2000),
+        hero_cta_text: clean(body.hero_cta_text),
+        hero_cta_link: clean(body.hero_cta_link, 500),
+        hero_cta_text_2: clean(body.hero_cta_text_2),
+        hero_cta_link_2: clean(body.hero_cta_link_2, 500),
+        updated_by: admin.id,
+        updated_at: new Date().toISOString(),
+      }));
+    } else if (kind === 'branding') {
+      ({ error } = await db
+        .from('company_settings')
+        .update({
+          company_name: clean(body.company_name, 120),
+          tagline: clean(body.tagline, 300),
+          logo_url: clean(body.logo_url, 2000),
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000'));
+    } else if (kind === 'card') {
+      ({ error } = await db.from('landing_gallery').upsert({
+        id: body.id || undefined,
+        title: clean(body.title, 160),
+        description: clean(body.description, 4000),
+        image_url: clean(body.image_url, 2000),
+        sort_order: Number(body.sort_order) || 0,
+        is_active: Boolean(body.is_active),
+      }));
+    } else if (kind === 'feature') {
+      ({ error } = await db.from('landing_core_features').upsert({
+        id: body.id || undefined,
+        title: clean(body.title, 160),
+        description: clean(body.description, 1000),
+        icon: clean(body.icon, 60) || 'Star',
+        image_url: clean(body.image_url, 2000) || null,
+        sort_order: Number(body.sort_order) || 0,
+        is_active: Boolean(body.is_active),
+      }));
+    } else {
+      return NextResponse.json({ error: 'Unknown content type' }, { status: 400 });
+    }
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    refreshLandingCache();
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    await requireSuperAdmin();
+    const { kind, id } = await request.json();
+    if (!id || !['card', 'feature'].includes(kind)) {
+      return NextResponse.json({ error: 'Invalid deletion' }, { status: 400 });
+    }
+    const db = await createAdminClient();
+    const { error } = await db
+      .from(kind === 'card' ? 'landing_gallery' : 'landing_core_features')
+      .delete()
+      .eq('id', id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    refreshLandingCache();
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+}

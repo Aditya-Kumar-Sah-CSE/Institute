@@ -1,52 +1,48 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { validateFiles, serializeAttachmentUrls } from '@/lib/attachments';
 import { uploadFilesServerSide } from '@/lib/attachments.server';
+import { getSheetServiceClient } from '@/lib/sheet-cache';
 
-export async function getNotices(limit?: number) {
-  // Fire-and-forget cleanup of expired notices
-  try {
-    const adminSupabase = await createAdminClient();
-    // Don't await this so it doesn't block the request
-    adminSupabase.from('notices').delete().lt('expires_at', new Date().toISOString())
-      .then(({ error }) => { if (error) console.error('Auto-delete expired notices error:', error); });
-  } catch (error) {
-    console.error('Failed to init cleanup routine', error);
-  }
-
-  const supabase = await createClient();
-    let query = supabase
+const getCachedGlobalNotices = unstable_cache(
+  async (limit: number) => {
+    const adminSupabase = getSheetServiceClient();
+    const nowIso = new Date().toISOString();
+    const { data, error } = await adminSupabase
       .from('notices')
       .select('*, profiles(name, role, email)')
-      .order('created_at', { ascending: false });
-    
-  if (limit) {
-    query = query.limit(limit);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error('Error fetching notices:', error);
-    return [];
-  }
-  
-  return data;
+      .or(`expires_at.is.null,expires_at.gte.${nowIso}`)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching notices:', error);
+      return [] as any[];
+    }
+
+    return (data as any[]) || [];
+  },
+  ['global-notices-v1'],
+  { revalidate: 30, tags: ['global-notices'] }
+);
+
+export async function getNotices(limit?: number) {
+  return getCachedGlobalNotices(limit || 50);
 }
 
 export async function createNotice(formData: FormData) {
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
-  
+
   if (!title || !content) {
     return { error: 'Title and content are required' };
   }
-  
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     return { error: 'Not authenticated' };
   }
@@ -78,7 +74,7 @@ export async function createNotice(formData: FormData) {
 
     image_url = serializeAttachmentUrls(urls);
   }
-  
+
   const expiresAtStr = formData.get('expires_at') as string;
   let expires_at;
   if (expiresAtStr) {
@@ -96,12 +92,12 @@ export async function createNotice(formData: FormData) {
     image_url,
     expires_at
   });
-  
+
   if (error) {
     console.error('Error creating notice:', error);
     return { error: error.message };
   }
-  
+
   // Notify all users about the new notice (excluding author)
   const { data: activeUsers } = await supabase.from('profiles').select('id').neq('id', user.id);
   if (activeUsers && activeUsers.length > 0) {
@@ -113,12 +109,18 @@ export async function createNotice(formData: FormData) {
     }));
     await supabase.from('notifications').insert(notifications);
   }
-  
+
+  // Prune expired notices opportunistically on write rather than on every student read
+  createAdminClient()
+    .then((adminSb) => adminSb.from('notices').delete().lt('expires_at', new Date().toISOString()))
+    .catch(() => {});
+
+  revalidateTag('global-notices', { expire: 0 });
   revalidatePath('/dashboard');
   revalidatePath('/notices');
   revalidatePath('/admin/notices');
   revalidatePath('/instructor/notices');
-  
+
   return { success: true };
 }
 
@@ -153,6 +155,7 @@ export async function updateNotice(formData: FormData) {
 
   const { error } = await supabase.from('notices').update({ title, content, expires_at }).eq('id', id);
   if (error) return { error: error.message };
+  revalidateTag('global-notices', { expire: 0 });
   revalidatePath('/dashboard');
   revalidatePath('/notices');
   revalidatePath('/admin/notices');
@@ -166,16 +169,17 @@ export async function deleteNotice(id: string) {
   if (!user) return { error: 'Not authenticated' };
   if (!await canManageNotice(supabase, id, user.id)) return { error: 'You are not allowed to delete this notice' };
   const { error } = await supabase.from('notices').delete().eq('id', id);
-  
+
   if (error) {
     console.error('Error deleting notice:', error);
     return { error: error.message };
   }
-  
+
+  revalidateTag('global-notices', { expire: 0 });
   revalidatePath('/dashboard');
   revalidatePath('/notices');
   revalidatePath('/admin/notices');
   revalidatePath('/instructor/notices');
-  
+
   return { success: true };
 }

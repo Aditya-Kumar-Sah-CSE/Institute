@@ -43,21 +43,22 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         explanation: tc.sample_name || undefined,
       }));
 
-    const hiddenCases = allTestCases.filter((tc: any) => tc.is_hidden);
+    const visibleCases = allTestCases.filter((tc: any) => !tc.is_hidden);
+    const isCreator = problem.created_by === user.id;
     let constraintTestCase = null;
-    if (hiddenCases.length > 0) {
-      const boundaryCase = hiddenCases[hiddenCases.length - 1];
+    if (isCreator && allTestCases.length > 0) {
+      const boundaryCase = allTestCases[allTestCases.length - 1];
       constraintTestCase = {
         input: boundaryCase.input,
         expectedOutput: boundaryCase.expected_output,
         name: `Constraint (${boundaryCase.sample_name || 'Boundary'})`
       };
-    } else if (examples.length > 2) {
-      const lastEx = examples[examples.length - 1];
+    } else if (visibleCases.length > 0) {
+      const lastVisible = visibleCases[visibleCases.length - 1];
       constraintTestCase = {
-        input: lastEx.input,
-        expectedOutput: lastEx.output,
-        name: `Constraint (${lastEx.explanation || 'Boundary'})`
+        input: lastVisible.input || '',
+        expectedOutput: lastVisible.expected_output || '',
+        name: `Sample (${lastVisible.sample_name || 'Example'})`
       };
     }
 

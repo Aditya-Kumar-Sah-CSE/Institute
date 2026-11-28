@@ -46,7 +46,6 @@ export default function LandingCourseClient({
   const [courses, setCourses] = useState(initialCourses);
   const [activeCategory, setActiveCategory] = useState('All Categories');
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialCourses.length === 100);
   const [activeIndex, setActiveIndex] = useState(0);
   const [exploringCourseId, setExploringCourseId] = useState<string | null>(null);
@@ -113,7 +112,6 @@ export default function LandingCourseClient({
   const loadMore = useCallback(async (currentPage: number, currentCategory: string) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
-    setLoading(true);
     
     try {
       const nextPage = currentPage + 1;
@@ -133,7 +131,6 @@ export default function LandingCourseClient({
       setHasMore(false);
     }
     
-    setLoading(false);
     loadingRef.current = false;
   }, []);
 
@@ -153,13 +150,11 @@ export default function LandingCourseClient({
   const handleCategoryChange = async (cat: string) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
-    setLoading(true);
     setPage(0);
     setActiveIndex(0);
     const { data } = await getPreviewCourses(0, 100, cat);
     setCourses(data || []);
     setHasMore(data && data.length === 100);
-    setLoading(false);
     if (carouselRef.current) {
       carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
@@ -182,11 +177,14 @@ export default function LandingCourseClient({
     carouselRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
-  // Mouse wheel handler for desktop horizontal scroll
+  // Mouse wheel handler: support horizontal swipe or Shift+Wheel without hijacking vertical scroll
   const handleWheel = (e: React.WheelEvent) => {
     if (!carouselRef.current) return;
-    if (e.deltaY !== 0) {
+    if (e.shiftKey && e.deltaY !== 0) {
+      e.preventDefault();
       carouselRef.current.scrollLeft += e.deltaY * 1.2;
+    } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      carouselRef.current.scrollLeft += e.deltaX;
     }
   };
 

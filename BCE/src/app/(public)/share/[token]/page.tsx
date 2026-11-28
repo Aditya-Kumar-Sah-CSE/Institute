@@ -161,7 +161,7 @@ export default async function PublicSharePage({ params }: ShareProps) {
   } else if (shareToken.resource_type === 'profile' || shareToken.resource_type === 'coding_profile') {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, avatar_url, role, graduation_period, streak_days, xp, level')
       .eq('id', shareToken.resource_id)
       .maybeSingle();
 

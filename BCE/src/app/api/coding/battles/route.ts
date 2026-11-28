@@ -33,7 +33,10 @@ export async function GET() {
     .limit(50);
 
   if (!isInstructor) {
-    query = query.or(`created_by.eq.${user.id},visibility.eq.CODE,batch_id.eq.${profile?.graduation_period || ''}`);
+    const safeBatch = String(profile?.graduation_period || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    query = safeBatch
+      ? query.or(`created_by.eq.${user.id},visibility.eq.CODE,batch_id.eq.${safeBatch}`)
+      : query.or(`created_by.eq.${user.id},visibility.eq.CODE`);
   }
 
   const { data, error } = await query;

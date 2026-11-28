@@ -55,7 +55,9 @@ export async function GET(request: NextRequest) {
 
   const cookieState = request.cookies.get('gdrive_oauth_state')?.value;
   const cookieReturnTo = request.cookies.get('gdrive_oauth_return_to')?.value;
-  const returnTo = cookieReturnTo && cookieReturnTo.startsWith('/') ? cookieReturnTo : '/settings/ai-agent';
+  const returnTo = cookieReturnTo && cookieReturnTo.startsWith('/') && !cookieReturnTo.startsWith('//')
+    ? cookieReturnTo
+    : '/settings/ai-agent';
 
   if (oauthError || !code || !state || state !== cookieState) {
     console.error('[google-drive/callback] authorization rejected or state mismatch', { traceId, oauthError: oauthError || null, hasCode: Boolean(code), hasState: Boolean(state), hasCookieState: Boolean(cookieState) });

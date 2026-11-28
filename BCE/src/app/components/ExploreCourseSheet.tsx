@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { 
   X, BookOpen, FileText, MessageSquare, HelpCircle, 
-  CheckCircle2, Users, Star, Award, Layers, Calendar, 
+  Users, Star, Award, Layers,
   Vote, ThumbsUp, Loader2, Lock, ArrowRight, PlayCircle,
-  Clock, Tag, Sparkles, ChevronRight, AlertCircle
+  Tag, AlertCircle
 } from 'lucide-react';
-import { getExploreCourseDetails } from './LandingPreviewActions';
+import { getExploreCourseDetails, getExploreCourseLessonsPage } from './LandingPreviewActions';
+import ExplorePaginationBar from './ExplorePaginationBar';
 import './ExploreSheet.css';
+
+const PAGE_SIZE = 10;
 
 type TabType = 'curriculum' | 'details' | 'interactions' | 'doubts' | 'mcq' | 'feedback' | 'students';
 
@@ -22,9 +25,14 @@ interface ExploreCourseSheetProps {
 export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseSheetProps) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('curriculum');
   const [data, setData] = useState<any>(null);
+  const [curriculum, setCurriculum] = useState<any[]>([]);
+  const [lessonPagination, setLessonPagination] = useState({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 });
+  const lessonPageCacheRef = useRef<Record<number, any[]>>({});
+  const bodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -35,16 +43,28 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
 
     let isCancelled = false;
     setLoading(true);
+    setPageLoading(false);
     setError(null);
     setActiveTab('curriculum');
+    lessonPageCacheRef.current = {};
 
-    getExploreCourseDetails(courseId)
+    getExploreCourseDetails(courseId, 1, PAGE_SIZE)
       .then(res => {
         if (isCancelled) return;
         if (res.error || !res.data) {
           setError(res.error || 'Failed to load course details');
         } else {
           setData(res.data);
+          const firstLessons = res.data.curriculum || [];
+          const pg = res.data.lessonPagination || {
+            page: 1,
+            pageSize: PAGE_SIZE,
+            total: res.data.course?.lesson_count || firstLessons.length,
+            totalPages: Math.max(1, Math.ceil((res.data.course?.lesson_count || firstLessons.length) / PAGE_SIZE)),
+          };
+          setCurriculum(firstLessons);
+          setLessonPagination(pg);
+          lessonPageCacheRef.current[1] = firstLessons;
         }
       })
       .catch(err => {
@@ -59,6 +79,44 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
     };
   }, [courseId]);
 
+  const handleLessonPageChange = async (nextPage: number) => {
+    if (
+      !courseId ||
+      pageLoading ||
+      nextPage < 1 ||
+      nextPage > lessonPagination.totalPages ||
+      nextPage === lessonPagination.page
+    ) {
+      return;
+    }
+
+    if (lessonPageCacheRef.current[nextPage]) {
+      setCurriculum(lessonPageCacheRef.current[nextPage]);
+      setLessonPagination((prev) => ({ ...prev, page: nextPage }));
+      bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setPageLoading(true);
+    try {
+      const res = await getExploreCourseLessonsPage(courseId, nextPage, PAGE_SIZE);
+      if (res.data) {
+        const nextList = res.data.curriculum || [];
+        lessonPageCacheRef.current[nextPage] = nextList;
+        setCurriculum(nextList);
+        if (res.data.pagination) {
+          setLessonPagination(res.data.pagination);
+        } else {
+          setLessonPagination((prev) => ({ ...prev, page: nextPage }));
+        }
+        bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {
+      // Keep current page on transient failure
+    }
+    setPageLoading(false);
+  };
+
   // Lock background scroll when open
   useEffect(() => {
     if (!courseId) return;
@@ -72,7 +130,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
   if (!mounted || !courseId) return null;
 
   const course = data?.course;
-  const curriculum = data?.curriculum || [];
+  const totalLessonsCount = lessonPagination.total || course?.lesson_count || curriculum.length;
   const assignments = data?.assignments || [];
   const notices = data?.notices || [];
   const polls = data?.polls || [];
@@ -81,7 +139,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
   const reviews = data?.reviews || { averageRating: 0, totalReviews: 0, ratingDistribution: {}, items: [] };
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode; count?: number }[] = [
-    { id: 'curriculum', label: 'Curriculum', icon: <BookOpen size={14} />, count: curriculum.length },
+    { id: 'curriculum', label: 'Curriculum', icon: <BookOpen size={14} />, count: totalLessonsCount },
     { id: 'details', label: 'Overview', icon: <FileText size={14} /> },
     { id: 'interactions', label: 'Notices & Polls', icon: <Vote size={14} />, count: notices.length + polls.length },
     { id: 'doubts', label: 'Doubts', icon: <HelpCircle size={14} />, count: doubts.total },
@@ -128,7 +186,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
               )}
             </div>
             <h2 style={{
-              color: 'var(--text-primary, #fff)',
+              color: '#f8fafc',
               fontSize: '1.25rem',
               fontWeight: 800,
               lineHeight: 1.3,
@@ -185,7 +243,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
         </div>
 
         {/* Content Body */}
-        <div className="explore-sheet-body">
+        <div className="explore-sheet-body" ref={bodyRef}>
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem', gap: '1rem' }}>
               <Loader2 className="animate-spin" size={36} color="#00f0ff" />
@@ -203,7 +261,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>
-                      Course Curriculum ({curriculum.length} Lessons)
+                      Course Curriculum ({totalLessonsCount} Lessons)
                     </h3>
                     <span style={{ fontSize: '0.8rem', color: '#00f0ff', fontWeight: 600 }}>
                       ⚡ {course?.total_xp || (curriculum.reduce((s: number, c: any) => s + (c.xpReward || 0), 0))} XP Total
@@ -216,57 +274,73 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
                       <p style={{ color: 'var(--text-secondary, #94a3b8)', fontSize: '0.9rem' }}>Curriculum outline will be published soon.</p>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {curriculum.map((lesson: any, idx: number) => (
-                        <div key={lesson.id} className="explore-card-item" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                          <div style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '10px',
-                            background: 'rgba(0, 240, 255, 0.1)',
-                            border: '1px solid rgba(0, 240, 255, 0.25)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#00f0ff',
-                            fontSize: '12px',
-                            fontWeight: 800,
-                            flexShrink: 0
-                          }}>
-                            {idx + 1}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary, #fff)', lineHeight: 1.3 }}>
-                                {lesson.title}
-                              </h4>
-                              {lesson.xpReward > 0 && (
-                                <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 700, background: 'rgba(251, 191, 36, 0.1)', padding: '2px 8px', borderRadius: '10px', flexShrink: 0 }}>
-                                  +{lesson.xpReward} XP
-                                </span>
-                              )}
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', opacity: pageLoading ? 0.55 : 1, transition: 'opacity 0.15s ease' }}>
+                        {curriculum.map((lesson: any, idx: number) => {
+                          const displayIndex = (lessonPagination.page - 1) * lessonPagination.pageSize + idx + 1;
+                          return (
+                            <div key={lesson.id} className="explore-card-item" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                              <div style={{
+                                minWidth: '32px',
+                                height: '32px',
+                                padding: '0 6px',
+                                borderRadius: '10px',
+                                background: 'rgba(0, 240, 255, 0.1)',
+                                border: '1px solid rgba(0, 240, 255, 0.25)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#00f0ff',
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                flexShrink: 0
+                              }}>
+                                {displayIndex}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.3 }}>
+                                    {lesson.title}
+                                  </h4>
+                                  {lesson.xpReward > 0 && (
+                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 700, background: 'rgba(251, 191, 36, 0.1)', padding: '2px 8px', borderRadius: '10px', flexShrink: 0 }}>
+                                      +{lesson.xpReward} XP
+                                    </span>
+                                  )}
+                                </div>
+                                {lesson.notes && (
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '4px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {lesson.notes}
+                                  </p>
+                                )}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>
+                                  {lesson.hasVideo && (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#06b6d4' }}>
+                                      <PlayCircle size={12} /> Video Lecture
+                                    </span>
+                                  )}
+                                  {lesson.hasPdf && (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#818cf8' }}>
+                                      <FileText size={12} /> Study Notes
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            {lesson.notes && (
-                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '4px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {lesson.notes}
-                              </p>
-                            )}
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>
-                              {lesson.hasVideo && (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#06b6d4' }}>
-                                  <PlayCircle size={12} /> Video Lecture
-                                </span>
-                              )}
-                              {lesson.hasPdf && (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#818cf8' }}>
-                                  <FileText size={12} /> Study Notes
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          );
+                        })}
+                      </div>
+
+                      <ExplorePaginationBar
+                        page={lessonPagination.page}
+                        pageSize={lessonPagination.pageSize}
+                        total={totalLessonsCount}
+                        totalPages={lessonPagination.totalPages}
+                        loading={pageLoading}
+                        itemLabel="lessons"
+                        onPageChange={handleLessonPageChange}
+                      />
+                    </>
                   )}
                 </div>
               )}
@@ -306,7 +380,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
                     <div className="explore-card-item" style={{ textAlign: 'center', padding: '12px' }}>
                       <Layers size={20} color="#00f0ff" style={{ margin: '0 auto 6px' }} />
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{course?.lesson_count || curriculum.length}</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{course?.lesson_count || totalLessonsCount}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>Modules</div>
                     </div>
                     <div className="explore-card-item" style={{ textAlign: 'center', padding: '12px' }}>
@@ -458,7 +532,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
                       {doubts.items.map((d: any) => (
                         <div key={d.id} className="explore-card-item">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary, #fff)', lineHeight: 1.3 }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', lineHeight: 1.3 }}>
                               {d.title}
                             </h4>
                             <span style={{
@@ -510,7 +584,7 @@ export default function ExploreCourseSheet({ courseId, onClose }: ExploreCourseS
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {assignments.map((a: any, idx: number) => (
+                      {assignments.map((a: any) => (
                         <div key={a.id} className="explore-card-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>

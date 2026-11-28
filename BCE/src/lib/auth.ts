@@ -39,6 +39,9 @@ export async function getAuthorizedProfile(options?: {
   const profile = await getOrCreateProfile(user);
 
   if (!profile) {
+    if (allowedRoles.length > 0 && !isSuperAdmin({ email: user.email, role: 'student' })) {
+      redirect(onUnauthorized);
+    }
     return { supabase, user, profile: null };
   }
 

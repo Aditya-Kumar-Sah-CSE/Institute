@@ -21,6 +21,9 @@ export async function GET(
 ) {
   const { id } = await params;
   const { supabase, user } = await getCodeArenaActor();
+  if (!user) {
+    return NextResponse.json({ success: false, error: { message: 'Unauthorized' } }, { status: 401 });
+  }
   const sheet = await resolveSheet(supabase, id);
 
   if (!sheet) {

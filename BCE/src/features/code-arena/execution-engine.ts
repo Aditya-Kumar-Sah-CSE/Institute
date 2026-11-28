@@ -1,8 +1,137 @@
+import vm from 'node:vm';
+
+function runSandboxedJs(code: string, stdinStr: string, startMs: number): ExecutionResult {
+  const logs: string[] = [];
+  let totalLogBytes = 0;
+
+  const safeStringify = (val: any): string => {
+    if (val === undefined) return 'undefined';
+    if (val === null) return 'null';
+    if (typeof val === 'bigint') return `${val.toString()}n`;
+    if (typeof val === 'symbol') return val.toString();
+    if (typeof val === 'function') return `[Function: ${val.name || 'anonymous'}]`;
+    if (typeof val !== 'object') return String(val);
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(val, (_k, v) => {
+        if (typeof v === 'bigint') return `${v.toString()}n`;
+        if (typeof v === 'symbol') return v.toString();
+        if (typeof v === 'function') return `[Function: ${v.name || 'anonymous'}]`;
+        if (v && typeof v === 'object') {
+          if (seen.has(v)) return '[Circular]';
+          seen.add(v);
+        }
+        return v;
+      });
+    } catch {
+      return String(val);
+    }
+  };
+
+  const appendLog = (line: string) => {
+    if (totalLogBytes >= 100_000) return;
+    totalLogBytes += line.length;
+    logs.push(line);
+  };
+
+  // Null-prototype bridge prevents VM code from climbing bridge.constructor onto host Function
+  const __emit = Object.setPrototypeOf((prefix: string, raw: any) => {
+    appendLog(prefix ? `${prefix} ${safeStringify(raw)}` : safeStringify(raw));
+  }, null);
+  const __clear = Object.setPrototypeOf(() => {
+    logs.length = 0;
+    totalLogBytes = 0;
+  }, null);
+  const timers = new Map<string, number>();
+  const __time = Object.setPrototypeOf((label: string) => {
+    timers.set(String(label), performance.now());
+  }, null);
+  const __timeEnd = Object.setPrototypeOf((label: string) => {
+    const k = String(label);
+    const s = timers.get(k);
+    if (s !== undefined) {
+      timers.delete(k);
+      appendLog(`${k}: ${(performance.now() - s).toFixed(2)}ms`);
+    }
+  }, null);
+
+  try {
+    const context = vm.createContext(
+      {
+        stdin: String(stdinStr ?? ''),
+        __emit,
+        __clear,
+        __time,
+        __timeEnd,
+        process: undefined,
+        global: undefined,
+        require: undefined,
+        module: undefined,
+        exports: undefined,
+      },
+      { codeGeneration: { strings: false, wasm: false } }
+    );
+
+    // Define console & safe helpers purely inside the isolated VM realm
+    vm.runInContext(
+      `
+      var console = {
+        log: function() { var out = []; for (var i = 0; i < arguments.length; i++) out.push(arguments[i]); __emit('', out.map(function(v){ return typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v); }).join(' ')); },
+        info: function() { console.log.apply(console, arguments); },
+        debug: function() { console.log.apply(console, arguments); },
+        warn: function() { var out = []; for (var i = 0; i < arguments.length; i++) out.push(arguments[i]); __emit('[warn]', out.join(' ')); },
+        error: function() { var out = []; for (var i = 0; i < arguments.length; i++) out.push(arguments[i]); __emit('[error]', out.join(' ')); },
+        dir: function(obj) { __emit('', obj); },
+        assert: function(cond) { if (!cond) __emit('Assertion failed:', Array.prototype.slice.call(arguments, 1).join(' ') || 'false'); },
+        time: function(l) { __time(l || 'default'); },
+        timeEnd: function(l) { __timeEnd(l || 'default'); },
+        clear: function() { __clear(); }
+      };
+      var setTimeout = function(fn) { if (typeof fn === 'function') fn(); return 0; };
+      `,
+      context,
+      { timeout: 250 }
+    );
+
+    const wrappedUserCode = `(function() {\n${code}\n})();`;
+    vm.runInContext(wrappedUserCode, context, { timeout: 800 });
+
+    return {
+      status: 'SUCCESS',
+      stdout: logs.join('\n') + (logs.length > 0 ? '\n' : ''),
+      stderr: '',
+      compileStdout: '',
+      compileStderr: '',
+      exitCode: 0,
+      signal: null,
+      executionTimeMs: Math.max(1, Date.now() - startMs),
+      memoryUsedMb: 12,
+      message: 'Executed in isolated JS sandbox.',
+      tier: 'local_vm',
+    };
+  } catch (vmErr: any) {
+    const isTimeout = /Script execution timed out/i.test(vmErr?.message || '');
+    return {
+      status: isTimeout ? 'TIME_LIMIT_EXCEEDED' : 'RUNTIME_ERROR',
+      stdout: logs.join('\n') + (logs.length > 0 ? '\n' : ''),
+      stderr: vmErr?.message || 'Execution error',
+      compileStdout: '',
+      compileStderr: '',
+      exitCode: 1,
+      signal: null,
+      executionTimeMs: Date.now() - startMs,
+      memoryUsedMb: null,
+      message: isTimeout ? 'Time Limit Exceeded (800ms).' : 'Runtime error in sandbox execution.',
+      tier: 'local_vm',
+    };
+  }
+}
+
 /**
  * High-Reliability Resilient Multi-Tier Code Execution Engine
  * Primary Tier: Judge0 CE Open API (base64 encoded, ultra-fast & stable)
  * Secondary Tier: Wandbox API (fallback engine)
- * Tertiary Tier: Local VM Sandboxing (for JS/TS/Python)
+ * Tertiary Tier: Isolated node:vm Sandbox (for JavaScript)
  */
 
 export interface ExecutionRequest {
@@ -85,145 +214,13 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
     codeToSend = codeToSend.replace(/\bpublic\s+class\b/g, 'class');
   }
 
-  // ─── TIER 0: HIGH-SPEED LOCAL VM EXECUTION (JS/TS - INSTANT 3ms) ───
-  if (langKey === 'javascript' || langKey === 'js' || langKey === 'typescript' || langKey === 'ts') {
-    try {
-      const logs: string[] = [];
-      const timers = new Map<string, number>();
-
-      const safeStringify = (val: any): string => {
-        if (val === undefined) return 'undefined';
-        if (val === null) return 'null';
-        if (typeof val === 'bigint') return `${val.toString()}n`;
-        if (typeof val === 'symbol') return val.toString();
-        if (typeof val === 'function') return `[Function: ${val.name || 'anonymous'}]`;
-        if (typeof val !== 'object') return String(val);
-        try {
-          const seen = new WeakSet();
-          return JSON.stringify(val, (_k, v) => {
-            if (typeof v === 'bigint') return `${v.toString()}n`;
-            if (typeof v === 'symbol') return v.toString();
-            if (typeof v === 'function') return `[Function: ${v.name || 'anonymous'}]`;
-            if (v && typeof v === 'object') {
-              if (seen.has(v)) return '[Circular]';
-              seen.add(v);
-            }
-            return v;
-          });
-        } catch {
-          return String(val);
-        }
-      };
-
-      const pushArgs = (...args: any[]) => logs.push(args.map(safeStringify).join(' '));
-
-      const formatTable = (data: any) => {
-        if (data === null || typeof data !== 'object') {
-          pushArgs(data);
-          return;
-        }
-        const rows: Record<string, string>[] = Array.isArray(data)
-          ? data.map((v, i): Record<string, string> => ({ '(index)': String(i), ...(v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, val]) => [k, safeStringify(val)])) : { Values: safeStringify(v) }) }))
-          : Object.entries(data).map(([k, v]): Record<string, string> =>
-              v && typeof v === 'object' && !Array.isArray(v)
-                ? { '(index)': k, ...Object.fromEntries(Object.entries(v).map(([ck, cv]) => [ck, safeStringify(cv)])) }
-                : { '(index)': k, Values: safeStringify(v) }
-            );
-        if (rows.length === 0) {
-          logs.push('(empty table)');
-          return;
-        }
-        const cols = Array.from(new Set(rows.flatMap(r => Object.keys(r))));
-        const widths = cols.map(c => Math.max(c.length, ...rows.map(r => (r[c] ?? '').length)));
-        const fmtRow = (vals: string[]) => '| ' + vals.map((v, idx) => v.padEnd(widths[idx])).join(' | ') + ' |';
-        const sep = '+-' + widths.map(w => '-'.repeat(w)).join('-+-') + '-+';
-        logs.push(sep, fmtRow(cols), sep, ...rows.map(r => fmtRow(cols.map(c => r[c] ?? ''))), sep);
-      };
-
-      const customConsole = {
-        log: pushArgs,
-        info: pushArgs,
-        debug: pushArgs,
-        warn: (...args: any[]) => logs.push('[warn] ' + args.map(safeStringify).join(' ')),
-        error: (...args: any[]) => logs.push('[error] ' + args.map(safeStringify).join(' ')),
-        dir: (obj: any) => logs.push(safeStringify(obj)),
-        table: formatTable,
-        assert: (cond: any, ...args: any[]) => {
-          if (!cond) logs.push('Assertion failed: ' + (args.length ? args.map(safeStringify).join(' ') : 'false'));
-        },
-        time: (label = 'default') => timers.set(String(label), performance.now()),
-        timeEnd: (label = 'default') => {
-          const key = String(label);
-          const start = timers.get(key);
-          if (start !== undefined) {
-            timers.delete(key);
-            logs.push(`${key}: ${(performance.now() - start).toFixed(2)}ms`);
-          }
-        },
-        clear: () => {
-          logs.length = 0;
-        },
-      };
-
-      // Track queued timers so short setTimeout snippets (e.g. Event Loop / debounce labs) also flush cleanly
-      let pendingTimers = 0;
-      const wrappedSetTimeout = (cb: (...args: any[]) => void, ms = 0, ...args: any[]) => {
-        const clamped = Math.min(Math.max(Number(ms) || 0, 0), 350);
-        pendingTimers++;
-        return setTimeout(() => {
-          try {
-            if (typeof cb === 'function') cb(...args);
-          } catch (timerErr: any) {
-            logs.push('[error] ' + (timerErr?.message || String(timerErr)));
-          } finally {
-            pendingTimers--;
-          }
-        }, clamped);
-      };
-
-      const wrappedFn = new Function('console', 'stdin', 'setTimeout', `return (async () => {\n${codeToSend}\n})();`);
-      const maybePromise = wrappedFn(customConsole, stdinToSend, wrappedSetTimeout);
-      if (maybePromise && typeof maybePromise.then === 'function') {
-        await Promise.race([maybePromise, new Promise(r => setTimeout(r, 600))]);
-      }
-
-      // Briefly wait for short queued timers / microtasks without delaying synchronous code
-      await Promise.resolve();
-      const timerDeadline = Date.now() + 450;
-      while (pendingTimers > 0 && Date.now() < timerDeadline) {
-        await new Promise(r => setTimeout(r, 25));
-      }
-
-      const res: ExecutionResult = {
-        status: 'SUCCESS',
-        stdout: logs.join('\n') + (logs.length > 0 ? '\n' : ''),
-        stderr: '',
-        compileStdout: '',
-        compileStderr: '',
-        exitCode: 0,
-        signal: null,
-        executionTimeMs: Math.max(1, Date.now() - startMs),
-        memoryUsedMb: 12,
-        message: 'Executed locally in ultra-fast Node.js VM.',
-        tier: 'local_vm',
-      };
+  // ─── TIER 0: SANDBOXED ISOLATED VM EXECUTION (JS - ZERO HOST ENV ACCESS) ───
+  if (langKey === 'javascript' || langKey === 'js') {
+    const res = runSandboxedJs(codeToSend, stdinToSend, startMs);
+    if (res.status === 'SUCCESS') {
       executionCache.set(cacheKey, { result: res, timestamp: Date.now() });
-      return res;
-    } catch (vmErr: any) {
-      return {
-        status: 'RUNTIME_ERROR',
-        stdout: '',
-        stderr: vmErr?.message || String(vmErr),
-        compileStdout: '',
-        compileStderr: '',
-        exitCode: 1,
-        signal: null,
-        executionTimeMs: Date.now() - startMs,
-        memoryUsedMb: null,
-        message: 'Runtime error in local VM execution.',
-        tier: 'local_vm',
-      };
     }
+    return res;
   }
 
   // ─── TIER 1: JUDGE0 CE (PRIMARY HIGH-SPEED ENGINE WITH KEEPALIVE) ───
@@ -370,47 +367,9 @@ export async function executeCodeResiliently(req: ExecutionRequest): Promise<Exe
     console.warn('[ExecutionEngine] Tier 2 Wandbox failed:', wbErr?.message || wbErr);
   }
 
-  // ─── TIER 3: LOCAL NODE.JS VM EVALUATION FALLBACK (FOR JS/TS) ───
+  // ─── TIER 3: ISOLATED VM FALLBACK FOR JS/TS ───
   if (langKey === 'javascript' || langKey === 'js' || langKey === 'typescript' || langKey === 'ts') {
-    try {
-      const logs: string[] = [];
-      const customConsole = {
-        log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-        error: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-        warn: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')),
-      };
-
-      const fn = new Function('console', 'stdin', codeToSend);
-      fn(customConsole, stdinToSend);
-
-      return {
-        status: 'SUCCESS',
-        stdout: logs.join('\n') + (logs.length > 0 ? '\n' : ''),
-        stderr: '',
-        compileStdout: '',
-        compileStderr: '',
-        exitCode: 0,
-        signal: null,
-        executionTimeMs: Date.now() - startMs,
-        memoryUsedMb: null,
-        message: 'Executed locally in Node.js VM.',
-        tier: 'local_vm',
-      };
-    } catch (vmErr: any) {
-      return {
-        status: 'RUNTIME_ERROR',
-        stdout: '',
-        stderr: vmErr?.message || String(vmErr),
-        compileStdout: '',
-        compileStderr: '',
-        exitCode: 1,
-        signal: null,
-        executionTimeMs: Date.now() - startMs,
-        memoryUsedMb: null,
-        message: 'Runtime error in local VM execution.',
-        tier: 'local_vm',
-      };
-    }
+    return runSandboxedJs(codeToSend, stdinToSend, startMs);
   }
 
   // ─── TIER 4: LOCAL PYTHON EVALUATOR FALLBACK ───

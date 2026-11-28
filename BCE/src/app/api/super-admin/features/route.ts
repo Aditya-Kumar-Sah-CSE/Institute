@@ -11,9 +11,14 @@ import { successResponse, errorResponse, withSafeApiHandler } from '@/lib/api-re
 export const GET = withSafeApiHandler(async () => {
   await requireSuperAdmin();
 
+  const [featureFlags, emergencyKillSwitches] = await Promise.all([
+    getGlobalFeatureFlags(),
+    getEmergencyKillSwitches(),
+  ]);
+
   return successResponse({
-    featureFlags: getGlobalFeatureFlags(),
-    emergencyKillSwitches: getEmergencyKillSwitches(),
+    featureFlags,
+    emergencyKillSwitches,
   });
 });
 

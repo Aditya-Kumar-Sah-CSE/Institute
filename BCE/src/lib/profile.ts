@@ -20,7 +20,7 @@ export const getOrCreateProfile = cache(async (user: any) => {
       id: user.id,
       email: user.email!,
       name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-      role: isPlatformOwner ? SUPER_ADMIN_ROLE : (user.user_metadata?.role || 'student'),
+      role: isPlatformOwner ? SUPER_ADMIN_ROLE : 'student',
     };
     
     const { data: newProfile, error } = await adminSupabase

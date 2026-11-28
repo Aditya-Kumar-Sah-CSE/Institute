@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'smartlearn-v14';
+const CACHE_VERSION = 'smartlearn-v15';
 const CACHE_STATIC = `smartlearn-static-${CACHE_VERSION}`;
 const CACHE_COURSE = `smartlearn-course-${CACHE_VERSION}`;
 const CACHE_MEDIA = `smartlearn-media-${CACHE_VERSION}`;
@@ -72,6 +72,11 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith('http')) return;
 
   const url = new URL(event.request.url);
+
+  // Never intercept local dev server assets or pages so CSS/UI HMR updates are always live
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
 
   // 2. Ignore Next.js RSC payloads & prefetch navigation trees
   if (
@@ -179,9 +184,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Next.js Static Chunks (_next/static/) -> Cache-First for Ultra-Fast Loading
-  // Next.js static chunks have unique content-hashes in their names, making them immutable.
+  // 5. Next.js Static Chunks (_next/static/)
+  // Bypass cache on localhost / unhashed Turbopack dev chunks (`._.`) so UI edits reflect immediately.
   if (url.pathname.startsWith('/_next/static/')) {
+    const isDevChunk =
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.pathname.includes('._.');
+    if (isDevChunk) {
+      return;
+    }
+
     event.respondWith(
       caches.open(CACHE_STATIC).then(async (cache) => {
         const cached = await cache.match(event.request);

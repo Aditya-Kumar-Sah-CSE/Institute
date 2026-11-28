@@ -1841,7 +1841,7 @@ export default function SheetDetailClient({
                         {student.name}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                        {student.email || 'No email provided'}
+                        {student.email || 'Enrolled Learner'}
                       </div>
                     </div>
                   </div>

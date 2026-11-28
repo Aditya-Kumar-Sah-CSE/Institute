@@ -26,10 +26,17 @@ export const viewport: Viewport = {
 };
  
 export const metadata: Metadata = {
-  title: 'Smart Hybrid Learning | Student Engagement Platform',
-  description: "To transform traditional classrooms into intelligent, data-driven learning environments where every student receives continuous guidance, every teacher gains actionable insights, and every institute can deliver a more engaging and effective educational experience.",
-
-  keywords: ['full stack', 'web development', 'Student Engagement platform', 'gamified', 'coding', 'institute'],
+  title: 'Debuggerzz | Official Coding Club of BCE Bhagalpur',
+  description:
+    'Debuggerzz is the official coding club of Bhagalpur College of Engineering (BCE Bhagalpur) — learn DSA, SQL, competitive programming, courses, live battles, and track contests.',
+  keywords: [
+    'Debuggerzz',
+    'BCE Bhagalpur',
+    'Bhagalpur College of Engineering',
+    'Coding Club BCE Bhagalpur',
+    'DSA',
+    'competitive programming',
+  ],
   manifest: '/manifest.json',
   icons: {
     icon: [

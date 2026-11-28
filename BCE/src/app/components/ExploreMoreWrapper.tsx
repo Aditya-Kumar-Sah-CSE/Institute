@@ -10,17 +10,19 @@ export default function ExploreMoreWrapper({ children }: { children: React.React
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 2rem 6rem 2rem', background: 'var(--bg-default)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1.5rem 5rem', background: 'var(--bg-default)' }}>
       <button 
-        className="btn-human cta-btn-lg"
+        type="button"
+        className="btn-human cta-btn-lg explore-features-trigger"
         onClick={() => setExpanded(true)}
-        style={{ padding: '1rem 3rem', fontSize: '1.25rem', boxShadow: 'var(--shadow-xl)', transform: 'translateY(0)', transition: 'all 0.3s ease', display: 'inline-flex', alignItems: 'center', gap: '10px' }}
       >
-        <Sparkles size={20} />
-        Explore More Features
-        <ChevronDown size={20} />
+        <Sparkles size={19} />
+        <span>Explore Platform Gallery &amp; Tools</span>
+        <ChevronDown size={19} className="explore-chevron" />
       </button>
-      <p style={{ marginTop: '1.25rem', color: 'var(--text-muted)', fontSize: '1rem', textAlign: 'center' }}>Click to unveil the full platform capabilities</p>
+      <p style={{ marginTop: '0.9rem', color: 'var(--text-muted)', fontSize: '0.92rem', textAlign: 'center' }}>
+        Interactive workspace preview &amp; core capabilities
+      </p>
     </div>
   );
 }

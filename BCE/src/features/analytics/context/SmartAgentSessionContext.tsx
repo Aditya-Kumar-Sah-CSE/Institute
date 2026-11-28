@@ -267,8 +267,19 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
   }, []);
 
   // Load provider status and previous rolling memory summary on session startup
+  // Defer provider auth check on public unauthenticated pages unless drawer is opened
   useEffect(() => {
-    refreshProviderStatus();
+    const isPublicPath =
+      pathname === '/' ||
+      pathname === '/login' ||
+      pathname === '/signup' ||
+      pathname?.startsWith('/share') ||
+      pathname?.startsWith('/sheets') ||
+      pathname?.startsWith('/verify');
+
+    if (!isPublicPath || isOpen) {
+      refreshProviderStatus();
+    }
 
     const mem = loadAgentMemory();
     if (mem && mem.summary) {
@@ -285,7 +296,7 @@ export function SmartAgentSessionProvider({ children }: { children: React.ReactN
         }
       ]);
     }
-  }, [refreshProviderStatus]);
+  }, [refreshProviderStatus, pathname, isOpen]);
 
   const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null);
 

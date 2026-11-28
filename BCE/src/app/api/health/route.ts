@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 /**
  * GET /api/health — API health and readiness check
@@ -19,20 +19,24 @@ export async function GET(request: Request) {
     environment: process.env.NODE_ENV || 'development',
   };
 
-  // Optional: check DB connectivity
+  // Optional: check DB connectivity using cookie-less client
   if (includeDb) {
     try {
-      const supabase = await createClient();
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
       const start = Date.now();
-      const { error } = await supabase.from('profiles').select('id').limit(1);
+      const { error } = await supabase.from('company_settings').select('id').limit(1);
       const dbLatencyMs = Date.now() - start;
 
       healthResponse.database = {
         status: error ? 'error' : 'connected',
         latencyMs: dbLatencyMs,
-        ...(error ? { error: error.message } : {}),
+        ...(error && process.env.NODE_ENV !== 'production' ? { error: error.message } : {}),
       };
-    } catch (err: any) {
+    } catch {
       healthResponse.database = {
         status: 'unreachable',
         error: 'Could not connect to database',

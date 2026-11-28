@@ -1,4 +1,4 @@
-import { createClient, getUser, createAdminClient } from '@/lib/supabase/server';
+import { createClient, getUser } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { getNotices } from '@/features/notices/actions';
 import type { Notice } from '@/features/notices/components/NoticeBoard';
@@ -25,7 +25,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
   const { getOrCreateProfile } = await import('@/lib/profile');
   const profilePromise = getOrCreateProfile(user);
   
-  const settingsPromise = supabase.from('company_settings').select('is_admission_pinned').single();
   const activeGoalPromise = supabase
     .from('student_goals')
     .select('*')
@@ -43,12 +42,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
   const [
     profile,
-    { data: settings },
     { data: activeGoal },
     { data: approvedEnrollments }
   ] = await Promise.all([
     profilePromise,
-    settingsPromise,
     activeGoalPromise,
     enrollmentsPromise
   ]);
@@ -57,8 +54,8 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 
   let courseSummary: DashboardCourseSummary | null = null;
   const validEnrollments = (approvedEnrollments || []).filter((e: any) => e.courses);
+  const enrolledCourseIds = validEnrollments.map((e: any) => e.course_id);
   if (validEnrollments.length > 0) {
-    const enrolledCourseIds = validEnrollments.map((e: any) => e.course_id);
     const [{ data: courseLessons }, { data: completedProgress }] = await Promise.all([
       supabase
         .from('lessons')
@@ -138,10 +135,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
           <DeferredGlobalPolls userId={user.id} role={profile?.role || 'student'} email={profile?.email} />
         </Suspense>
         <Suspense fallback={<div className="skeleton-dash" style={{ height: '220px', borderRadius: '12px' }}></div>}>
-          <DeferredDashboardPolls userId={user.id} />
+          <DeferredDashboardPolls userId={user.id} courseIds={enrolledCourseIds} />
         </Suspense>
         <Suspense fallback={<div className="skeleton-dash" style={{ height: '300px', borderRadius: '12px' }}></div>}>
-          <DeferredNotices />
+          <DeferredNotices userId={user.id} userRole={profile?.role} courseIds={enrolledCourseIds} />
         </Suspense>
       </div>
     </div>
@@ -151,7 +148,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ [ke
 // ── DEFERRED ASYNC COMPONENTS FOR FAST FIRST-SCREEN LOADING ──
 
 async function DeferredGlobalPolls({ userId, role, email }: { userId: string; role: string; email?: string }) {
-  const globalPolls = await getGlobalPolls();
+  const globalPolls = await getGlobalPolls({ activeOnly: true, limit: 10 });
   const activeGlobalPolls = (globalPolls || []).filter(
     (poll: any) => !poll.expires_at || new Date(poll.expires_at) >= new Date()
   );
@@ -160,42 +157,30 @@ async function DeferredGlobalPolls({ userId, role, email }: { userId: string; ro
   return <DashboardGlobalPolls polls={activeGlobalPolls} currentUserId={userId} currentUserRole={role} currentUserEmail={email} />;
 }
 
-async function DeferredDashboardPolls({ userId }: { userId: string }) {
-  const supabase = await createClient();
-  const { data: enrollments } = await supabase
-    .from('enrollments')
-    .select('course_id')
-    .eq('user_id', userId)
-    .eq('status', 'approved');
+async function DeferredDashboardPolls({ userId, courseIds }: { userId: string; courseIds: string[] }) {
+  if (courseIds.length === 0) return null;
 
-  const ids = enrollments?.map(e => e.course_id) || [];
-  if (ids.length === 0) return null;
-
-  const { data: dashboardPolls } = await getDashboardPolls(ids);
+  const { data: dashboardPolls } = await getDashboardPolls(courseIds);
   if (!dashboardPolls || dashboardPolls.length === 0) return null;
   return <DashboardPolls polls={dashboardPolls} currentUserId={userId} />;
 }
 
-async function DeferredNotices() {
+async function DeferredNotices({ userId, userRole, courseIds }: { userId: string; userRole?: string; courseIds: string[] }) {
   const supabase = await createClient();
-  const user = await getUser();
-  if (!user) return null;
-  const [{ data: enrollments }, globalNotices, { data: profile }] = await Promise.all([
-    supabase.from('enrollments').select('course_id').eq('user_id', user.id).eq('status', 'approved'),
+  const [globalNotices, { data: courseNotices }] = await Promise.all([
     getNotices(10),
-    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+    courseIds.length > 0
+      ? supabase
+          .from('course_notices')
+          .select('id, course_id, title, content, created_by, created_at, profiles:created_by(name, role, email), courses:course_id(title)')
+          .in('course_id', courseIds)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
-  const courseIds = enrollments?.map(enrollment => enrollment.course_id) || [];
-  const { data: courseNotices } = courseIds.length > 0
-    ? await supabase.from('course_notices')
-      .select('id, course_id, title, content, created_by, created_at, profiles:created_by(name, role, email), courses:course_id(title)')
-      .in('course_id', courseIds)
-      .order('created_at', { ascending: false })
-      .limit(10)
-    : { data: [] };
   const notices = [
-    ...(globalNotices || []).map(notice => ({ ...notice, noticeScope: 'Global' })),
-    ...(courseNotices || []).map(notice => {
+    ...((globalNotices as any[]) || []).map((notice: any) => ({ ...notice, noticeScope: 'Global' })),
+    ...((courseNotices as any[]) || []).map((notice: any) => {
       const course = Array.isArray(notice.courses) ? notice.courses[0] : notice.courses;
       return { ...notice, author_id: notice.created_by, noticeScope: course?.title || 'Enrolled course' };
     }),
@@ -207,7 +192,7 @@ async function DeferredNotices() {
         <h2 style={{ fontSize: 'var(--text-2xl)', margin: 0 }}>Recent Notices</h2>
         <Link href="/notices" style={{ color: 'var(--neon-cyan)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', whiteSpace: 'nowrap' }}>View all notices →</Link>
       </div>
-      <NoticeBoard notices={notices as Notice[]} currentUserId={user.id} currentUserRole={profile?.role} />
+      <NoticeBoard notices={notices as Notice[]} currentUserId={userId} currentUserRole={userRole} />
     </div>
   );
 }

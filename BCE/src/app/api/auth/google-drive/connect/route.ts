@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const queryReturnTo = request.nextUrl.searchParams.get('return_to');
   const referer = request.headers.get('referer');
   let returnTo = '/settings/ai-agent';
-  if (queryReturnTo && queryReturnTo.startsWith('/')) {
+  if (queryReturnTo && queryReturnTo.startsWith('/') && !queryReturnTo.startsWith('//')) {
     returnTo = queryReturnTo;
   } else if (referer && referer.includes('/profile')) {
     returnTo = '/profile';

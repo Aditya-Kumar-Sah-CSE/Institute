@@ -2,7 +2,7 @@
 .explore-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(5, 8, 17, 0.75);
+  background-color: rgba(5, 8, 17, 0.86);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 9999999;
@@ -17,6 +17,10 @@
 }
 
 .explore-sheet-panel {
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  color: #f8fafc;
   position: relative;
   width: 100%;
   max-width: 680px;
@@ -37,14 +41,15 @@
 
 @media (max-width: 640px) {
   .explore-sheet-backdrop {
-    align-items: flex-end;
+    align-items: stretch;
   }
   .explore-sheet-panel {
     max-width: 100%;
-    height: 94dvh;
-    border-radius: 24px 24px 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
     border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: none;
     animation: explore-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
@@ -69,9 +74,9 @@
 }
 
 .explore-sheet-close-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -84,7 +89,9 @@
 }
 
 .explore-sheet-close-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #ffffff;
   transform: scale(1.05);
 }
 
@@ -216,5 +223,76 @@
   border-color: #00f0ff;
   box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
   transform: translateY(-1px);
+}
+
+/* Drawer Pagination Bar */
+.explore-pagination-bar {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.explore-pagination-info {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
+}
+
+.explore-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.explore-page-btn,
+.explore-page-pill {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.explore-page-btn:hover:not(:disabled),
+.explore-page-pill:hover:not(:disabled) {
+  background: rgba(6, 182, 212, 0.14);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #22d3ee;
+}
+
+.explore-page-pill.active {
+  background: rgba(6, 182, 212, 0.22);
+  border-color: #06b6d4;
+  color: #00f0ff;
+}
+
+.explore-page-btn:disabled,
+.explore-page-pill:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.explore-page-ellipsis {
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+  padding: 0 4px;
 }
 
