@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BookOpen, Play, Clock, ArrowRight } from 'lucide-react';
+import { Play, Clock, ArrowRight } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { truncateText } from '@/lib/utils';
 
@@ -87,8 +87,14 @@ export default function DashboardSheetsCard() {
     >
       <div className="dashboard-card-top">
         <Link href="/code-arena/sheets" style={{ textDecoration: 'none' }} title="Browse All Coding Sheets">
-          <div className="stat-card-icon" style={{ background: 'rgba(57, 255, 20, 0.1)', color: 'var(--neon-lime)', cursor: 'pointer' }}>
-            <BookOpen size={24} />
+          <div className="stat-card-icon" style={{ background: 'transparent', borderRadius: 0, cursor: 'pointer' }}>
+            <img
+              src="https://api.iconify.design/fluent-color/book-open-24.svg"
+              alt="DSA Sheets"
+              width={44}
+              height={44}
+              style={{ objectFit: 'contain' }}
+            />
           </div>
         </Link>
 

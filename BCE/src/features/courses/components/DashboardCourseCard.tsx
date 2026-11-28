@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GraduationCap, Play, ArrowRight, BookOpen } from 'lucide-react';
+import { Play, ArrowRight, BookOpen } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { truncateText } from '@/lib/utils';
 import {
@@ -89,9 +89,15 @@ export default function DashboardCourseCard({
         <Link href="/courses" style={{ textDecoration: 'none' }} title="Browse All Courses">
           <div
             className="stat-card-icon"
-            style={{ background: 'rgba(0, 242, 254, 0.1)', color: 'var(--neon-cyan)', cursor: 'pointer' }}
+            style={{ background: 'transparent', borderRadius: 0, cursor: 'pointer' }}
           >
-            <GraduationCap size={24} />
+            <img
+              src="https://api.iconify.design/fluent-emoji-flat/graduation-cap.svg"
+              alt="Courses"
+              width={44}
+              height={44}
+              style={{ objectFit: 'contain' }}
+            />
           </div>
         </Link>
 

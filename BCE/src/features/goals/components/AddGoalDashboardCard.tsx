@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
-import { Play, Plus, X, Check, Clock } from 'lucide-react';
+import { Play, Plus, X, Check } from 'lucide-react';
 import FocusModeWindow from './FocusModeWindow';
 import Modal from '@/components/ui/Modal';
 import { useRouter } from 'next/navigation';
@@ -329,8 +329,14 @@ export default function AddGoalDashboardCard({ initialGoal }: { initialGoal: any
         title={activeSession ? "Resume Focus Session" : "Manage Daily Routine"}
       >
         <Card variant="glass" padding="lg" className="stat-card hover-lift">
-          <div suppressHydrationWarning className="stat-card-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--neon-cyan)' }}>
-            <Clock size={24} />
+          <div suppressHydrationWarning className="stat-card-icon" style={{ background: 'transparent', borderRadius: 0 }}>
+            <img
+              src="https://api.iconify.design/fluent-color/clock-24.svg"
+              alt="Daily Routine"
+              width={44}
+              height={44}
+              style={{ objectFit: 'contain' }}
+            />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-value" style={{ color: 'var(--neon-cyan)', fontSize: '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>

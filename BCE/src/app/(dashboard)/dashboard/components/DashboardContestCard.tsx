@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import { Clock3, Trophy } from 'lucide-react';
+import { Clock3 } from 'lucide-react';
 import type { UnifiedContest } from '@/app/api/coding/contests/route';
 
 const CONTEST_PLATFORMS = new Set(['CODECHEF', 'CODEFORCES', 'GEEKSFORGEEKS', 'CODE360']);
@@ -64,8 +64,14 @@ export default function DashboardContestCard() {
   return (
     <Link href="/code-arena" style={{ textDecoration: 'none' }} title="View coding contests">
       <Card variant="glass" padding="lg" className="stat-card hover-lift" style={{ height: '100%', boxSizing: 'border-box' }}>
-        <div className="stat-card-icon" style={{ background: 'rgba(255, 184, 0, 0.12)', color: 'var(--neon-gold)' }}>
-          <Trophy size={24} />
+        <div className="stat-card-icon" style={{ background: 'transparent', borderRadius: 0 }}>
+          <img
+            src="https://api.iconify.design/fluent-color/trophy-24.svg"
+            alt="Contest"
+            width={44}
+            height={44}
+            style={{ objectFit: 'contain' }}
+          />
         </div>
         <div className="stat-card-content" style={{ minWidth: 0 }}>
           <div className="stat-card-value" style={{ color: 'var(--neon-gold)', fontSize: '1.2rem', fontWeight: 800 }}>Contest</div>
