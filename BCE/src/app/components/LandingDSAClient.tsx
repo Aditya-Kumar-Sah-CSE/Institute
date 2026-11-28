@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Lock, Code, Shield, FolderGit2, Star, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
+import { Lock, Code, Shield, Star, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
 import { getPreviewDSASheets } from './LandingPreviewActions';
 import ExploreDSASheet from './ExploreDSASheet';
 
@@ -224,17 +224,30 @@ export default function LandingDSAClient({
                   <div 
                     className="dsa-icon-box"
                     style={{ 
-                      width: '64px', 
-                      height: '64px', 
-                      borderRadius: '16px', 
-                      background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.1))', 
+                      width: '56px', 
+                      height: '56px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      color: '#06b6d4',
-                      transition: 'filter 0.25s ease'
+                      transition: 'transform 0.25s ease'
                     }}>
-                    <FolderGit2 size={28} />
+                    <img
+                      src={
+                        sheet.sheet_type === 'SQL'
+                          ? 'https://api.iconify.design/fluent-color/database-24.svg'
+                          : sheet.sheet_type === 'APTITUDE'
+                          ? 'https://api.iconify.design/fluent-color/lightbulb-24.svg'
+                          : sheet.sheet_type === 'TCS_PREP'
+                          ? 'https://api.iconify.design/fluent-color/briefcase-24.svg'
+                          : sheet.sheet_type === 'ROADMAP'
+                          ? 'https://api.iconify.design/fluent-color/laptop-24.svg'
+                          : 'https://api.iconify.design/fluent-color/code-24.svg'
+                      }
+                      alt=""
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                    />
                   </div>
 
                   <div className="dsa-badge-container" suppressHydrationWarning>
