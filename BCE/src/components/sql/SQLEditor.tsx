@@ -19,7 +19,6 @@ import {
   FileJson,
   Key,
   Layers,
-  Sparkles,
   ArrowUpDown,
   Code2
 } from 'lucide-react';
@@ -326,7 +325,7 @@ export default function SQLEditor({
           </button>
 
           <button className="sql-btn sql-btn-secondary" onClick={handleFormatSQL} title="Ctrl+Shift+F">
-            <Sparkles className="w-4 h-4" />
+            <Code2 className="w-4 h-4" />
             Format
           </button>
 

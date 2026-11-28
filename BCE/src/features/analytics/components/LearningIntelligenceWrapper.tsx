@@ -33,7 +33,7 @@ export default function LearningIntelligenceWrapper({
   title,
   subtitle,
   icon,
-  badgeText = '✦ Student-Aware Learning Intelligence',
+  badgeText = 'Student-Aware Learning Intelligence',
   headerActions,
   variant = 'card',
   padding = 'var(--space-lg)',

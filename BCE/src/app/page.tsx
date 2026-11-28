@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { ArrowRight, Sparkles, BookOpen, Code2, Cpu, Layers } from 'lucide-react';
+import { ArrowRight, BookOpen, Code2, Cpu, Layers } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import LandingCodingClub from './components/LandingCodingClub';
@@ -66,7 +66,13 @@ export default async function LandingPage() {
               width={38} 
               height={38}
               unoptimized={isRemoteLogo}
-              style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '9px' }} 
+              style={{
+                width: '38px',
+                height: '38px',
+                objectFit: 'cover',
+                borderRadius: '9999px',
+                border: '1.5px solid color-mix(in srgb, var(--human-primary) 35%, var(--border-default))',
+              }} 
             />
           )}
           <span className="logo-text hide-on-mobile">{companyName}</span>
@@ -85,9 +91,6 @@ export default async function LandingPage() {
           <InstallAppButton variant="ghost" className="nav-install-btn" />
           <Link href="/login" className="btn-human-ghost" style={{ textDecoration: 'none' }}>
             Login
-          </Link>
-          <Link href="/signup" className="btn-human" style={{ textDecoration: 'none' }}>
-            Sign Up
           </Link>
         </div>
       </header>
@@ -108,7 +111,6 @@ export default async function LandingPage() {
               {hero?.hero_badge && (
                 <div className="hero-badge animate-fade-up">
                   <span className="hero-badge-dot" aria-hidden="true"></span>
-                  <Sparkles size={14} style={{ color: 'var(--human-secondary)', flexShrink: 0 }} />
                   <span>{hero.hero_badge}</span>
                 </div>
               )}

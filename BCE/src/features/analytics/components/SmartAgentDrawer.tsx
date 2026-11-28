@@ -8,7 +8,7 @@ import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 import DualAudioVisualizer from './DualAudioVisualizer';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { 
-  X, Send, Mic, MicOff, Sparkles, Bot, User, ArrowRight, RefreshCw, 
+  X, Send, Mic, MicOff, Bot, User, ArrowRight, RefreshCw, 
   ExternalLink, AlertTriangle, Terminal, HelpCircle, Loader2, Volume2, VolumeX, Square, Trash2, CheckCircle2, AlertCircle, Maximize2, Minimize2, Database, ChevronDown, ChevronUp
 } from 'lucide-react';
 
@@ -179,7 +179,7 @@ function AgentActionPlanCard({ plan }: { plan: any }) {
       marginBottom: '8px'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#818cf8', marginBottom: '8px' }}>
-        <Sparkles size={14} /> Autonomous Action Plan
+        <Terminal size={14} /> Autonomous Action Plan
       </div>
 
       <div style={{ fontSize: '11px', color: '#c7d2fe', marginBottom: '8px', fontStyle: 'italic' }}>
@@ -397,7 +397,7 @@ export default function SmartAgentDrawer() {
           {/* Active Glowing Status Indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={16} style={{ color: 'var(--neon-cyan)' }} />
+              <Bot size={16} style={{ color: 'var(--neon-cyan)' }} />
               {(isListening || isSpeaking) && (
                 <span style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: isListening ? '#00ff88' : 'var(--neon-cyan)', boxShadow: isListening ? '0 0 8px #00ff88' : '0 0 8px var(--neon-cyan)', animation: 'pulse 1s infinite' }} />
               )}
@@ -527,7 +527,7 @@ export default function SmartAgentDrawer() {
             <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h3 style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  ✦ Smart Learn Agent
+                  Smart Learn Agent
                 </h3>
 
                 {activeProvider ? (

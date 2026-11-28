@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Loader2, Sparkles, AlertCircle, Trash2, ExternalLink, ArrowRight, X } from 'lucide-react';
+import { Download, Loader2, AlertCircle, Trash2, ExternalLink, ArrowRight, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 
@@ -252,7 +252,7 @@ export default function ImportProblemModal({ isOpen, onClose }: ImportProblemMod
                 </>
               ) : (
                 <>
-                  <Sparkles size={15} />
+                  <Download size={15} />
                   <span>Import &amp; Solve &rarr;</span>
                 </>
               )}

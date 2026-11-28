@@ -11,7 +11,7 @@ import {
 import { AIProviderName } from '@/lib/ai/providers/types';
 import Button from '@/components/ui/Button';
 import { 
-  Sparkles, 
+  Bot, 
   CheckCircle2, 
   ShieldCheck, 
   KeyRound, 
@@ -213,7 +213,7 @@ export default function AISettingsClient() {
           <span style={{ color: 'var(--text-primary)' }}>AI Provider</span>
         </div>
         <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Sparkles size={26} style={{ color: 'var(--neon-cyan)' }} />
+          <Bot size={26} style={{ color: 'var(--neon-cyan)' }} />
           Per-User BYOK AI Provider
         </h1>
         <p style={{ margin: '6px 0 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
@@ -365,7 +365,7 @@ export default function AISettingsClient() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(0, 229, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon-cyan)', fontWeight: 'bold', fontSize: '18px' }}>
-                  ✦
+                  <Bot size={18} />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Google Gemini</h3>

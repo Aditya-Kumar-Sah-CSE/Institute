@@ -12,7 +12,6 @@ import {
   RotateCcw, 
   LayoutDashboard, 
   Trophy, 
-  Sparkles, 
   Lock,
   Star,
   CheckCircle2,
@@ -3254,7 +3253,7 @@ export default function GamePage() {
                 { id: 'combo_master', title: 'Combo Master', desc: 'Reach x10 combo multiplier', icon: '🔥' },
                 { id: 'boss_slayer', title: 'Boss Slayer', desc: 'Defeat a guardian brick core', icon: '👑' },
                 { id: 'endless_runner', title: 'Endless Runner', desc: 'Reach Wave 25 in Endless mode', icon: '♾️' },
-                { id: 'gold_hunter', title: 'Gold Hunter', desc: 'Destroy 25 golden bricks', icon: '✨' },
+                { id: 'gold_hunter', title: 'Gold Hunter', desc: 'Destroy 25 golden bricks', icon: '🏆' },
                 { id: 'perfect_run', title: 'Perfect Run', desc: 'Complete a level without losing a heart', icon: '❤️' },
                 { id: 'champion', title: 'Champion', desc: 'Complete all 10 challenge stages', icon: '🏆' }
               ].map(ach => {

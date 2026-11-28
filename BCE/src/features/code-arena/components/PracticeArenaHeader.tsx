@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trophy, Search, Sparkles, Brain, BookOpen, PlayCircle, Check, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trophy, Search, Brain, BookOpen, PlayCircle, Check, Copy, ExternalLink } from 'lucide-react';
 import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
 import SpotifyConnect from './SpotifyConnect';
 import FocusTimer from './FocusTimer';
@@ -127,7 +127,7 @@ export default function PracticeArenaHeader({
             className="header-action-btn btn-ask-chatgpt"
             title="Ask ChatGPT to explain or help with this problem"
           >
-            <Sparkles size={13} style={{ color: 'var(--neon-cyan)' }} />
+            <Brain size={13} style={{ color: 'var(--neon-cyan)' }} />
             <span>Ask ChatGPT</span>
           </button>
 

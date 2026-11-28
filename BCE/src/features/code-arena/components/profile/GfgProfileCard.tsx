@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Sparkles, BookOpen, ChevronDown } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, BookOpen, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function GfgProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
@@ -162,7 +162,7 @@ export default function GfgProfileCard({ account, isOwnProfile = true }: { accou
                     gap: '6px'
                   }}>
                     <div style={{ fontWeight: 'bold', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Sparkles size={12} /> GeeksforGeeks Connection Steps:
+                      <Key size={12} /> GeeksforGeeks Connection Steps:
                     </div>
                     <div><strong>Step 1:</strong> Log into <a href="https://www.geeksforgeeks.org" target="_blank" rel="noopener noreferrer" style={{ color: '#22c55e', textDecoration: 'underline' }}>geeksforgeeks.org</a>.</div>
                     <div><strong>Step 2:</strong> Copy ONLY your exact username/handle from your profile page (e.g. <code>geek_123</code>).</div>

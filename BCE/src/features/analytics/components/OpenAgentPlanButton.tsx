@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { Sparkles } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { useSmartAgentSession } from '../context/SmartAgentSessionContext';
 
 interface OpenAgentPlanButtonProps {
@@ -30,7 +30,7 @@ export default function OpenAgentPlanButton({
         padding: '10px 16px'
       }}
     >
-      <Sparkles size={16} /> {label}
+      <Bot size={16} /> {label}
     </Button>
   );
 }

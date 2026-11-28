@@ -18,7 +18,7 @@ import {
   replaceTitleInLatex,
   makeCurrentMatrixSymmetric,
 } from '@/lib/latex/latexCommands';
-import { Undo, Redo, Sparkles, Eye, FileText } from 'lucide-react';
+import { Undo, Redo, Eye, FileText } from 'lucide-react';
 import './VoiceLatexEditor.css';
 
 export default function VoiceLatexEditor() {

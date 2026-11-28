@@ -27,7 +27,6 @@ import {
   Play,
   RefreshCw,
   RotateCcw,
-  Sparkles,
   Terminal,
   UploadCloud,
   Zap,
@@ -998,7 +997,7 @@ export default function GuidedCourseWorkspace({
             <ArrowLeft size={14} /> Back to Course
           </Link>
           <Button variant="primary" size="sm" onClick={() => setViewMode('guided')}>
-            <Sparkles size={14} /> Switch to Interactive Guided Mode
+            <Play size={14} /> Switch to Interactive Guided Mode
           </Button>
         </div>
         <LessonView
@@ -1685,7 +1684,7 @@ export default function GuidedCourseWorkspace({
                 style={{ borderColor: 'var(--accent-secondary)', color: 'var(--accent-secondary)' }}
                 onClick={handleAnalyzeTopic}
               >
-                <Sparkles size={12} /> AI Analyze
+                <Terminal size={12} /> AI Analyze
               </button>
               <Button
                 variant="primary"
@@ -1977,7 +1976,7 @@ export default function GuidedCourseWorkspace({
                       }
                       title="Open in full Smart Learn AI Drawer"
                     >
-                      <Sparkles size={12} /> Full Agent →
+                      <Bot size={12} /> Full Agent →
                     </button>
                   </form>
 

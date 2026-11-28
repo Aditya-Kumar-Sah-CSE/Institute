@@ -12,9 +12,9 @@ import {
   Mail,
   Play,
   RotateCcw,
-  Sparkles,
   Terminal,
   XCircle,
+  Zap,
 } from 'lucide-react';
 import {
   scoreTextMatchRatio,
@@ -210,7 +210,7 @@ export function TcsVerbalStudioView({
               </span>
               {xpToast > 0 && (
                 <span className="sql-xp-burst">
-                  <Sparkles size={12} /> +{xpToast} XP
+                  <Zap size={12} /> +{xpToast} XP
                 </span>
               )}
               {progressMap[activeDrill.drill_code]?.is_solved && (
@@ -589,7 +589,7 @@ export function TcsCodingLabView({
           <div className="sql-card-actions-right">
             {xpToast > 0 && (
               <span className="sql-xp-burst">
-                <Sparkles size={12} /> +{xpToast} XP
+                <Zap size={12} /> +{xpToast} XP
               </span>
             )}
             {progressMap[activeProb.drill_code]?.is_solved && (

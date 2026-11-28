@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NextImage from 'next/image';
 import { 
   Image as ImageIcon, Type, X, Loader2, Check, Palette, 
-  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type as FontIcon, Sparkles 
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Type as FontIcon 
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { uploadStoryMedia, createStoryItem } from '@/features/stories/actions/stories';
@@ -780,7 +780,7 @@ export default function StoryComposerSheet({ isOpen, onClose, onStoryAdded }: St
                   {/* 3. Text Color Selector */}
                   <div style={{ marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                      <Sparkles size={14} className="text-purple-400" />
+                      <Palette size={14} className="text-purple-400" />
                       <span style={{ fontSize: '0.75rem', fontWeight: 600 }} className="text-slate-500">Text Color</span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

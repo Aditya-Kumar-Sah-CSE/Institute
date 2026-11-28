@@ -13,7 +13,7 @@ import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
 import { getIcon } from '@/lib/icon-mapper';
 import { signOut } from '@/features/auth/actions/auth';
 import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
-import { MoreVertical, ArrowLeft, Smartphone, Monitor, Sparkles, ChevronDown } from 'lucide-react';
+import { MoreVertical, ArrowLeft, Smartphone, Monitor, Bot, Sliders, ChevronDown } from 'lucide-react';
 
 const ITEM_GROUPS: Record<string, string> = {
   'Dashboard': 'Overview',
@@ -294,9 +294,9 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
         {companyName && (
           <Link href={homeLink} className="company-branding-nav" style={{ padding: '0', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             {companyLogo ? (
-              <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} priority />
+              <Image unoptimized src={companyLogo} alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '9999px' }} priority />
             ) : (
-              <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" priority />
+              <Image unoptimized src="/icon-192x192.png" alt={companyName} width={32} height={32} className="company-nav-logo" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '9999px' }} priority />
             )}
             {/* Desktop only company name */}
             <span className="company-nav-name desktop-only hidden md:block" style={{ fontWeight: 'bold' }}>{companyName}</span>
@@ -318,8 +318,8 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
               onClick={() => window.dispatchEvent(new Event('toggleSmartAgentDrawer'))}
               title="Open Smart Agent"
             >
-              <Sparkles size={14} style={{ color: 'var(--neon-cyan)' }} />
-              <span>✦ Smart Agent</span>
+              <Bot size={14} style={{ color: 'var(--neon-cyan)' }} />
+              <span>Smart Agent</span>
             </button>
 
             <button 
@@ -420,7 +420,7 @@ export default function Navbar({ title, companyName, companyLogo, profile, curre
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '13px' }}>
-                    <Sparkles size={15} style={{ color: 'var(--neon-cyan)' }} />
+                    <Sliders size={15} style={{ color: 'var(--neon-cyan)' }} />
                     <span>Theme Mode</span>
                   </div>
                   <ThemeToggle />

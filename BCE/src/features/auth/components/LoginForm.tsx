@@ -176,7 +176,7 @@ export default function LoginForm({ companyName, logoUrl, baseUrl }: LoginFormPr
         <div className="auth-header">
           <span className="auth-logo" style={{ overflow: 'hidden', borderRadius: '8px', display: 'inline-block' }}>
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" style={{ width: 'auto', height: '48px', objectFit: 'contain' }} />
+              <img src={logoUrl} alt="Logo" style={{ width: '56px', height: '56px', borderRadius: '9999px', objectFit: 'cover', border: '1.5px solid rgba(56, 189, 248, 0.35)' }} />
             ) : (
               <LogoAvatar name={companyName || 'Smart Learning'} />
             )}

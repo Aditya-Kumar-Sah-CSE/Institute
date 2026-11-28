@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Database,
-  Sparkles,
   Search,
   KeyRound,
+  Zap,
   BookOpen,
   Play,
   RotateCcw,
@@ -123,7 +123,7 @@ export function PracticeTablesView() {
       {/* Dialect Notes Comparison Matrix */}
       <div className="sql-ref-card">
         <div className="sql-ref-header">
-          <Sparkles size={18} style={{ color: '#f59e0b' }} />
+          <Database size={18} style={{ color: '#f59e0b' }} />
           <h3>SQL Dialect Notes (Crucial for TCS Interviews)</h3>
         </div>
         <div className="sql-result-table-scroll">
@@ -170,7 +170,7 @@ export function CheatSheetView() {
         <div className="sql-cheat-header-bar">
           <div>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-              <Sparkles size={18} style={{ color: 'var(--neon-cyan, #06b6d4)' }} />
+              <BookOpen size={18} style={{ color: 'var(--neon-cyan, #06b6d4)' }} />
               SQL Quick Revision Cheat Sheet (Last-Minute TCS Interview Prep)
             </h3>
             <p className="sql-ref-desc" style={{ marginTop: '6px' }}>
@@ -394,7 +394,7 @@ export function QuizSessionView({
           <FocusTimer resetKey={currentQ.question_number} />
           {sessionXp > 0 && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{sessionXp} XP
+              <Zap size={12} /> +{sessionXp} XP
             </span>
           )}
           <span className="sql-solved-pill">

@@ -18,7 +18,6 @@ import {
   Lock,
   Play,
   Shield,
-  Sparkles,
   Target,
   Terminal,
   Trophy,
@@ -1213,7 +1212,7 @@ export default function TcsMockExamAndAnalysisView({
                     }}
                     className="sql-btn sql-btn-emerald"
                   >
-                    <Sparkles size={13} /> Analysis
+                    <BarChart3 size={13} /> Analysis
                   </button>
                 )}
               </div>

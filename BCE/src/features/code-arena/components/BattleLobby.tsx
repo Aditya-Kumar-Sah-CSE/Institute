@@ -13,7 +13,6 @@ import {
   Play,
   Check,
   ShieldAlert,
-  Sparkles,
   Plus,
   LogOut,
 } from 'lucide-react';
@@ -242,7 +241,7 @@ export default function BattleLobby({
               marginBottom: 'var(--space-xs)',
             }}
           >
-            <Sparkles size={14} /> LOBBY WAITING ROOM
+            <Swords size={14} /> LOBBY WAITING ROOM
           </div>
           <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, margin: '4px 0' }}>
             {battle.title}

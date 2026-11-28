@@ -19,7 +19,7 @@ import JoinedStudentsList from '@/features/admin/components/JoinedStudentsList';
 import CourseReviewsSection from '@/features/courses/components/CourseReviewsSection';
 import EndOfCourseReviewCard from '@/features/courses/components/EndOfCourseReviewCard';
 import CourseHeroCard from '@/features/courses/components/CourseHeroCard';
-import { BookOpen, Play, ArrowLeft, Sparkles } from 'lucide-react';
+import { BookOpen, Play, ArrowLeft, Zap } from 'lucide-react';
 import { getCourseReviewsData } from '@/features/courses/actions/reviews';
 import './CourseDetail.css';
 
@@ -200,7 +200,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
           )}
           {course.total_xp > 0 && (
             <span className="course-top-progress-pill" style={{ color: '#fbbf24', borderColor: 'rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.1)' }}>
-              <Sparkles size={13} /> {course.total_xp} XP
+              <Zap size={13} /> {course.total_xp} XP
             </span>
           )}
           {canAccessLessons && nextResumeLesson && (

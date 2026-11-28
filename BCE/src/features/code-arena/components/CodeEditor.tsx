@@ -26,7 +26,6 @@ import {
   Award,
   Brain,
   MessageSquare,
-  Sparkles,
 } from 'lucide-react';
 import { useSmartAgentSession } from '@/features/analytics/context/SmartAgentSessionContext';
 import type { CodeLanguage, NormalizedExecutionResult } from '../types';
@@ -419,7 +418,7 @@ function CodeAnalysisRatingSection({
             </div>
             {isRealAi ? (
               <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.22)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.45)' }}>
-                ✨ Real AI Analysis
+                Smart Code Analysis
               </span>
             ) : isAiLoading ? (
               <span style={{ fontSize: '10px', color: 'var(--neon-cyan)' }}>🤖 Analyzing with AI...</span>
@@ -600,7 +599,7 @@ function CodeAnalysisRatingSection({
                   boxShadow: '0 0 14px rgba(6, 182, 212, 0.35)',
                 }}
               >
-                <Sparkles size={13} /> Cross Question with Agent <ArrowRight size={13} />
+                <MessageSquare size={13} /> Cross Question with Agent <ArrowRight size={13} />
               </button>
             </div>
           </div>
@@ -675,7 +674,7 @@ function CodeAnalysisRatingSection({
               </div>
               {isRealAi ? (
                 <span style={{ fontSize: '9px', fontWeight: 800, padding: '2px 7px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.22)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.45)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                  ✨ Real AI Analysis
+                  Smart Code Analysis
                 </span>
               ) : isAiLoading ? (
                 <span style={{ fontSize: '9px', color: 'var(--neon-cyan)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>

@@ -71,7 +71,7 @@ export default function GlobalLoading() {
           alt="App Logo"
           width={120}
           height={120}
-          style={{ objectFit: 'contain', zIndex: 2, position: 'relative', width: '100%', height: '100%' }}
+          style={{ objectFit: 'cover', borderRadius: '9999px', zIndex: 2, position: 'relative', width: '100%', height: '100%' }}
         />
       </div>
 

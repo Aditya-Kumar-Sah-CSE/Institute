@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Gamepad2, Bot, Users, Trophy, Flame, Play, Plus, RefreshCw, Sparkles, Award, ArrowLeft } from 'lucide-react';
+import { Gamepad2, Bot, Users, Trophy, Flame, Play, Plus, RefreshCw, Award, ArrowLeft } from 'lucide-react';
 import '@/features/games/components/Games.css';
 
 interface UserStats {
@@ -148,7 +148,7 @@ export default function GamesLobbyPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <span className="game-card-badge" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-                <Sparkles size={12} /> BATTLE ROYALE
+                <Flame size={12} /> BATTLE ROYALE
               </span>
               <span style={{ fontSize: '24px' }}>🪨 📄 ✂️</span>
             </div>
@@ -189,7 +189,7 @@ export default function GamesLobbyPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <span className="game-card-badge" style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
-                <Sparkles size={12} /> MINIMAX ENGINE
+                <Bot size={12} /> MINIMAX ENGINE
               </span>
               <span style={{ fontSize: '24px' }}>❌ ⭕</span>
             </div>

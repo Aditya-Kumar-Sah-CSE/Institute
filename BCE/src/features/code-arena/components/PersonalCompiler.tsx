@@ -33,8 +33,7 @@ import {
   Settings,
   MoreVertical,
   X,
-  Download,
-  Sparkles
+  Download
 } from 'lucide-react';
 import ImportProblemModal from './ImportProblemModal';
 import { createClient } from '@/lib/supabase/client';

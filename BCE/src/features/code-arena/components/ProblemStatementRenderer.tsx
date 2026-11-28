@@ -17,7 +17,6 @@ import {
   AlertCircle,
   PlayCircle,
   BookOpen,
-  Sparkles,
   Brain,
   Bot,
   X,
@@ -1677,7 +1676,7 @@ export default function ProblemStatementRenderer({ problem, onScrollToBottom }: 
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--neon-cyan)', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)', padding: '12px', borderRadius: '8px' }}>
-            <Sparkles size={20} style={{ flexShrink: 0 }} />
+            <Bot size={20} style={{ flexShrink: 0 }} />
             <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
               We have copied the high-quality solution prompt to your clipboard and opened ChatGPT in a new tab!
             </div>

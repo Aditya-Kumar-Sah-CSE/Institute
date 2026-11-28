@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, Users, ArrowLeft, Play, Sparkles } from 'lucide-react';
+import { Bot, Users, ArrowLeft, Play } from 'lucide-react';
 import '@/features/games/components/Games.css';
 
 export default function TTTSetupPage() {

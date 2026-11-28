@@ -12,9 +12,9 @@ import {
   Bookmark,
   Pencil,
   RotateCcw,
-  Sparkles,
   Terminal,
   ListChecks,
+  Zap,
   Layers,
   BookOpen,
   AlertCircle,
@@ -212,7 +212,7 @@ export default function SqlQueryWorkspace({
         <div className="sql-card-actions-right">
           {(recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0)) && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
+              <Zap size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
             </span>
           )}
           {isSolved && (

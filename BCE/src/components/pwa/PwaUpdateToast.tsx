@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, X, Sparkles } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 
 export default function PwaUpdateToast() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -59,7 +59,7 @@ export default function PwaUpdateToast() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0284c7, #2563eb)', color: '#fff', flexShrink: 0 }}>
-        <Sparkles size={20} />
+        <RefreshCw size={20} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc' }}>

@@ -75,7 +75,7 @@ export default async function DoubtsRedirectPage() {
             ))
           ) : (
             <Card variant="glass" style={{ textAlign: 'center', padding: 'var(--space-2xl)' }}>
-              <span style={{ fontSize: '3rem', display: 'block', marginBottom: 'var(--space-md)' }}>✨</span>
+              <span style={{ fontSize: '3rem', display: 'block', marginBottom: 'var(--space-md)' }}>💬</span>
               <h3 style={{ color: 'var(--text-primary)' }}>No active doubts</h3>
               <p className="text-secondary">Everything is perfectly clear right now!</p>
             </Card>

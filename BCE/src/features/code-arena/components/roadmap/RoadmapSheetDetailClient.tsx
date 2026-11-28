@@ -20,11 +20,11 @@ import {
   Pencil,
   Search,
   Share2,
-  Sparkles,
   Star,
   Trophy,
   Unlock,
   Users,
+  Zap,
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -588,7 +588,7 @@ export default function RoadmapSheetDetailClient({
             gap: '8px',
           }}
         >
-          <Sparkles size={16} color="#059669" />
+          <Zap size={16} color="#059669" />
           <strong style={{ fontSize: '13.5px', color: '#059669' }}>{xpBanner}</strong>
         </div>
       )}
@@ -773,7 +773,7 @@ export default function RoadmapSheetDetailClient({
           onClick={() => { setShowHeaderInFocus(false); setActiveTab('revision'); }}
           className={`rm-tab-btn ${activeTab === 'revision' ? 'active' : ''}`}
         >
-          <Sparkles size={15} />
+          <BookOpen size={15} />
           Level {selectedLevelNum} Revision & Self-Test
         </button>
 

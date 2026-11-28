@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Heart, Music, Music2, RotateCcw, LayoutDashboard, Trophy, Sparkles, Maximize2, Minimize2, RotateCw, Smartphone } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Heart, Music, Music2, RotateCcw, LayoutDashboard, Trophy, Maximize2, Minimize2, RotateCw, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import './BrickBreakerGame.css';
 
@@ -1011,7 +1011,7 @@ export default function BrickBreakerGame() {
           ) : (isMobileDevice && (mobileStartPopup || gameState === 'READY')) ? (
             <div className="game-overlay mobile-start-popup">
               <span className="overlay-badge">
-                <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
+                <Trophy size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
               </span>
               <h3 className="overlay-title">Device Rotated!</h3>
               <p className="overlay-sub">
@@ -1031,7 +1031,7 @@ export default function BrickBreakerGame() {
           ) : gameState === 'READY' ? (
             <div className="game-overlay">
               <span className="overlay-badge">
-                <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
+                <Trophy size={12} style={{ display: 'inline', marginRight: '4px' }} /> 404 ARCADE MINI-GAME
               </span>
               <h3 className="overlay-title">Ready to Play?</h3>
               <p className="overlay-sub">Use Arrow keys or Mouse to move paddle. Press Space or Click to launch ball!</p>

@@ -7,7 +7,7 @@ import Input, { TextArea } from '@/components/ui/Input';
 import { 
   Rocket, Link as LinkIcon, Smartphone, FileText, 
   CheckCircle, XCircle, Clock, Trash2, ShieldCheck, 
-  ExternalLink, Upload, AlertCircle, Sparkles, ChevronDown, ChevronUp, Eye,
+  ExternalLink, Upload, AlertCircle, ChevronDown, ChevronUp, Eye,
   Pencil
 } from 'lucide-react';
 import { 
@@ -750,7 +750,7 @@ export default function StudentAppShowcase({
                       <CheckCircle size={11} /> Approved App
                     </span>
                     <span style={{ fontSize: '11px', background: 'rgba(6,182,212,0.15)', color: 'var(--neon-cyan)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(6,182,212,0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Sparkles size={11} /> Smart Learn Showcase
+                      <Rocket size={11} /> Smart Learn Showcase
                     </span>
                   </div>
                 </div>

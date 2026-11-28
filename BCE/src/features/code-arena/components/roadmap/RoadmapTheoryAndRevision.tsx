@@ -14,7 +14,6 @@ import {
   Layers,
   ListChecks,
   Search,
-  Sparkles,
   Terminal,
   Zap,
 } from 'lucide-react';
@@ -264,7 +263,7 @@ export function RoadmapRevisionView({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <span className="rm-badge-primary">
-              <Sparkles size={12} /> Level {level.level_number} Mastery Revision
+              <Zap size={12} /> Level {level.level_number} Mastery Revision
             </span>
             <h2 style={{ margin: '10px 0 4px', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary, #0f172a)' }}>
               {rev.title || `Level ${level.level_number} Revision & Interview Playbook`}

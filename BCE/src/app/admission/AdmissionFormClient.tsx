@@ -118,7 +118,7 @@ export default function AdmissionFormClient({
       <div className="admission-card">
         <div className="admission-header">
           {logoUrl && (
-            <img src={logoUrl} alt={companyName} style={{ height: '80px', objectFit: 'contain', marginBottom: 'var(--space-sm)' }} />
+            <img src={logoUrl} alt={companyName} style={{ width: '80px', height: '80px', borderRadius: '9999px', objectFit: 'cover', marginBottom: 'var(--space-sm)' }} />
           )}
           <h1>{companyName}</h1>
           <h2>New Admission Registration Form</h2>

@@ -25,11 +25,11 @@ export default function InstitutionLanding({ tenant, landing }: InstitutionLandi
               alt={tenant.name} 
               width={44} 
               height={44} 
-              style={{ width: '44px', height: '44px', objectFit: 'contain', borderRadius: '8px' }}
+              style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '9999px' }}
               unoptimized
             />
           ) : (
-            <div style={{ width: 44, height: 44, borderRadius: '8px', background: tenant.primaryColor || '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '9999px', background: tenant.primaryColor || '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: '1.2rem' }}>
               {tenant.name.slice(0, 2).toUpperCase()}
             </div>
           )}

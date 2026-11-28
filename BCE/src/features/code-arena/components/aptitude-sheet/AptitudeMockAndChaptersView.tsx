@@ -10,7 +10,6 @@ import {
   Play,
   RotateCcw,
   Search,
-  Sparkles,
   Trophy,
   XCircle,
   Zap,
@@ -467,7 +466,7 @@ export function AptitudeMockTestView({
           )}
           {sessionXp > 0 && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{sessionXp} XP
+              <Zap size={12} /> +{sessionXp} XP
             </span>
           )}
           <span className="sql-solved-pill">

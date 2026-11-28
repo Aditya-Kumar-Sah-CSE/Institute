@@ -115,7 +115,8 @@ export default function PwaStartPage() {
           height={96}
           priority
           style={{
-            borderRadius: '24px',
+            borderRadius: '9999px',
+            objectFit: 'cover',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
           }}
         />

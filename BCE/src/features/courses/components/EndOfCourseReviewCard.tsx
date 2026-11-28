@@ -5,7 +5,7 @@ import StarRatingInput from './StarRatingInput';
 import { submitOrUpdateReviewAction } from '../actions/reviews';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Award, Star, CheckCircle, Sparkles, Send } from 'lucide-react';
+import { Award, Star, CheckCircle, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface EndOfCourseReviewCardProps {
@@ -78,7 +78,7 @@ export default function EndOfCourseReviewCard({
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: 'var(--text-md)', color: 'var(--neon-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Congratulations on Progressing in {courseTitle}! <Sparkles size={16} />
+              Congratulations on Progressing in {courseTitle}! <Award size={16} />
             </h3>
             <p style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
               How was your learning experience? Leave a review to earn 25 bonus XP and help fellow students!

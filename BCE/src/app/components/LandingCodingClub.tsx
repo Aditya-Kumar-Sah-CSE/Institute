@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { Award, ExternalLink, History, Sparkles, Users } from 'lucide-react';
+import { Award, ExternalLink, History, Users } from 'lucide-react';
 import {
   getTodayIstDateString,
   resolveCoordinatorStatus,
@@ -173,7 +173,7 @@ export default function LandingCodingClub({
               <div className="club-cohort-header">
                 <div className="club-cohort-title">
                   <span className="club-live-dot" aria-hidden="true" />
-                  <Sparkles size={15} className="club-cohort-icon-current" />
+                  <Users size={15} className="club-cohort-icon-current" />
                   <h3>Coordinators &bull; {group.termLabel || group.batchLabel}</h3>
                   <span className="club-cohort-batch">{group.batchLabel}</span>
                 </div>

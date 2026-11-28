@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { User, Flame, CheckCircle2, TerminalSquare, Swords, Sparkles, Calendar } from 'lucide-react';
+import { User, Flame, CheckCircle2, TerminalSquare, Swords, Calendar } from 'lucide-react';
 import type { Profile } from '@/types';
 
 interface CodingProfileHeroProps {
@@ -130,7 +130,6 @@ export default function CodingProfileHero({ profile, codeforcesConnected, leetCo
         <div className="profile-hero-details">
           <div className="hero-name-row">
             <h1 className="profile-hero-name">{profile?.name || 'Loading...'}</h1>
-            <Sparkles size={20} className="hero-sparkle-icon" />
           </div>
           <p className="profile-hero-title">
             {isOwnProfile ? 'Competitive Programmer' : `Viewing ${profile?.name || 'User'}'s Coding Profile`}

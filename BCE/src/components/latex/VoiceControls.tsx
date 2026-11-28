@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mic, Globe, Sparkles, Volume2, HelpCircle, Bot } from 'lucide-react';
+import { Mic, Globe, Volume2, HelpCircle, Bot } from 'lucide-react';
 
 interface VoiceControlsProps {
   onTranscriptReceived: (transcript: string) => void;
@@ -88,7 +88,7 @@ export default function VoiceControls({
 
         {lastFeedback && (
           <div className="agent-feedback-toast">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <Bot className="w-4 h-4 text-emerald-400" />
             <span>{lastFeedback}</span>
           </div>
         )}

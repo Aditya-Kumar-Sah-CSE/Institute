@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Sparkles, User, Sliders, Settings } from 'lucide-react';
+import { Bot, User, Sliders, Settings } from 'lucide-react';
 
 const SETTINGS_TABS = [
   {
     name: 'AI Agent & Storage',
     href: '/settings/ai-agent',
-    icon: Sparkles,
+    icon: Bot,
     badge: 'BYOK'
   },
   {

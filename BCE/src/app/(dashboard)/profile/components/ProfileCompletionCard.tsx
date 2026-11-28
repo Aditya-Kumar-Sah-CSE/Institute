@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { calculateProfileCompletion, ProfileCompletionResult } from '@/lib/profile-completion';
 import { Profile } from '@/types/database';
 import Card from '@/components/ui/Card';
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, Sparkles, Award } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, Award } from 'lucide-react';
 
 interface ProfileCompletionCardProps {
   profile: Profile | null;
@@ -23,7 +23,7 @@ export default function ProfileCompletionCard({ profile }: ProfileCompletionCard
 
   const getStatusText = (pct: number) => {
     if (pct === 100) return 'All Set! Outstanding Profile 🌟';
-    if (pct >= 80) return 'Almost Complete! Looking Great ✨';
+    if (pct >= 80) return 'Almost Complete! Looking Great';
     if (pct >= 50) return 'Good Progress! Keep Going 🚀';
     return 'Basic Profile. Add details to unlock full potential 📈';
   };
@@ -51,7 +51,7 @@ export default function ProfileCompletionCard({ profile }: ProfileCompletionCard
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: 'var(--text-md)', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
-                Profile Completion <Sparkles size={16} style={{ color: 'var(--neon-cyan)' }} />
+                Profile Completion <Award size={16} style={{ color: 'var(--neon-cyan)' }} />
               </h3>
               <p style={{ margin: '2px 0 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                 {getStatusText(percentage)}

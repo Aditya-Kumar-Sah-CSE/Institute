@@ -12,7 +12,6 @@ import {
   Laptop,
   Rocket,
   Shield,
-  Sparkles,
   Star,
   Swords,
   Target,
@@ -79,7 +78,7 @@ function renderFeatureIcon(rawIcon: string | null | undefined, size: number) {
     case 'zap':
       return <Zap size={size} strokeWidth={1.9} />;
     default:
-      return <Sparkles size={size} strokeWidth={1.9} />;
+      return <Layers size={size} strokeWidth={1.9} />;
   }
 }
 

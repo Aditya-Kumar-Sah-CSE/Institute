@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Trophy, BookOpen, Share2, Search, ExternalLink, Play, Video, 
-  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, Sparkles, ChevronRight, ChevronLeft,
+  FileText, Check, Shield, Globe, Lock, ArrowRight, Code2, ChevronRight, ChevronLeft,
   UserPlus, CheckCircle2, Loader2, Image
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -349,7 +349,7 @@ export default function PublicSheetViewer({
                     border: '1px solid rgba(6, 182, 212, 0.2)',
                   }}
                 >
-                  <Sparkles size={11} style={{ display: 'inline', marginRight: '4px' }} />
+                  <Code2 size={11} style={{ display: 'inline', marginRight: '4px' }} />
                   Curated Practice Sheet
                 </span>
 

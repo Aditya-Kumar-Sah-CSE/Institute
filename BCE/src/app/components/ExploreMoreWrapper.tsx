@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Sparkles, ChevronDown } from 'lucide-react';
+import { Layers, ChevronDown } from 'lucide-react';
 
 export default function ExploreMoreWrapper({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
@@ -16,7 +16,7 @@ export default function ExploreMoreWrapper({ children }: { children: React.React
         className="btn-human cta-btn-lg explore-features-trigger"
         onClick={() => setExpanded(true)}
       >
-        <Sparkles size={19} />
+        <Layers size={19} />
         <span>Explore Platform Gallery &amp; Tools</span>
         <ChevronDown size={19} className="explore-chevron" />
       </button>

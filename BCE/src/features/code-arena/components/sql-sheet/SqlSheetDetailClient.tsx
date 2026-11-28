@@ -25,12 +25,12 @@ import {
   Play,
   Search,
   Share2,
-  Sparkles,
   Star,
   Terminal,
   Trophy,
   Users,
   X,
+  Zap,
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -516,7 +516,7 @@ export default function SqlSheetDetailClient({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {stats.totalXpEarned > 0 && (
                 <span className="sql-xp-burst" title="Total XP earned on this SQL sheet">
-                  <Sparkles size={12} /> +{stats.totalXpEarned} XP
+                  <Zap size={12} /> +{stats.totalXpEarned} XP
                 </span>
               )}
               <span className="sql-progress-pct">{stats.pct}%</span>
@@ -632,7 +632,7 @@ export default function SqlSheetDetailClient({
                 setActiveTab('cheatsheet');
               }}
             >
-              <Sparkles size={20} style={{ color: '#7c3aed', flexShrink: 0 }} />
+              <Database size={20} style={{ color: '#7c3aed', flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>12 Topics</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Cheat Sheet</div>

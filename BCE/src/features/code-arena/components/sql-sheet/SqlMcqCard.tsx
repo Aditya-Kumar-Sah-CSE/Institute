@@ -11,8 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   Pencil,
-  Sparkles,
   AlertCircle,
+  Zap,
 } from 'lucide-react';
 import type { SqlSheetQuestion, SqlQuestionProgress } from '@/features/code-arena/data/sqlSheetReference';
 import FocusTimer from '@/features/code-arena/components/FocusTimer';
@@ -119,7 +119,7 @@ export default function SqlMcqCard({
           <FocusTimer resetKey={`${question.question_number}-${retryNonce}`} />
           {(recentXp > 0 || (isSolved && (progress?.xp_awarded || 0) > 0)) && (
             <span className="sql-xp-burst">
-              <Sparkles size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
+              <Zap size={12} /> +{recentXp > 0 ? recentXp : progress?.xp_awarded} XP
             </span>
           )}
           {isSolved && (

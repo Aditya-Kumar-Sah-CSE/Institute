@@ -23,7 +23,7 @@ export default function TermsOfServicePage() {
             alt="Company Logo" 
             width={40} 
             height={40} 
-            style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
+            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '9999px' }}
             unoptimized
           />
           <span className="logo-text" style={{ marginLeft: '10px' }}>Smart Learn</span>

@@ -6,7 +6,7 @@ import {
   Trophy, ArrowLeft, BookOpen, CheckCircle2, Circle, 
   ExternalLink, Code2, ArrowRight, Award, Play, Pencil, Users,
   Lock, Shield, Globe, KeyRound, AlertCircle, Video, FileText, Share2, Check, BarChart2, Search, Image,
-  RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3, Sparkles
+  RefreshCw, RotateCcw, Eye, Copy, ChevronLeft, ChevronRight, Star, Edit3
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { useRouter } from 'next/navigation';
@@ -656,7 +656,7 @@ export default function SheetDetailClient({
                     cursor: 'pointer',
                   }}
                 >
-                  <Sparkles size={14} /> Level {activeRoadmapLevel.level_number} Revision & Cheat Sheet
+                  <BookOpen size={14} /> Level {activeRoadmapLevel.level_number} Revision & Cheat Sheet
                 </button>
               )}
               {sheet.youtube_url && (

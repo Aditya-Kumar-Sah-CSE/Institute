@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ChevronDown, ChevronRight, Lock, Play, Sparkles } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Lock, Play, Zap } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import { useLivePageContext } from '@/features/analytics/context/LivePageContext';
 import './CurriculumListClient.css';
@@ -171,7 +171,7 @@ export default function CurriculumListClient({
                 <div className="curriculum-week-right">
                   {totalXp > 0 && (
                     <span className="curriculum-week-xp">
-                      <Sparkles size={11} />
+                      <Zap size={11} />
                       {allWeekLessons.reduce(
                         (sum, l) =>
                           sum +

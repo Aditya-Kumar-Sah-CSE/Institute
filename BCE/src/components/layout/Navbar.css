@@ -88,8 +88,8 @@
   align-items: center;
   gap: var(--space-sm);
   text-decoration: none;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-md);
+  padding: 4px 10px 4px 4px;
+  border-radius: 9999px;
   transition: all var(--transition-fast);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid transparent;
@@ -102,15 +102,17 @@
 
 .company-nav-logo {
   width: 32px;
-  height: auto;
-  border-radius: var(--radius-sm);
+  height: 32px;
+  border-radius: 9999px;
   object-fit: cover;
+  overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--neon-cyan) 35%, var(--glass-border));
 }
 
 .company-nav-logo-fallback {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
+  border-radius: 9999px;
   background: var(--bg-elevated);
   display: flex;
   align-items: center;
@@ -277,6 +279,9 @@
   .company-branding-nav {
     display: flex;
     align-items: center;
+    padding: 0;
+    background: transparent;
+    border-radius: 9999px;
   }
   
   .company-nav-name-mobile {

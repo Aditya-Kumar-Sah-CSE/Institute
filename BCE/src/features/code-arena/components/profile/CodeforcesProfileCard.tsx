@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, Sparkles, ChevronDown } from 'lucide-react';
+import { RefreshCw, ExternalLink, CheckCircle2, TrendingUp, Target, Award, Key, Unlink, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CodeforcesProfileCard({ account, isOwnProfile = true }: { account: any; isOwnProfile?: boolean }) {
@@ -161,7 +161,7 @@ export default function CodeforcesProfileCard({ account, isOwnProfile = true }: 
                     gap: '6px'
                   }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--neon-cyan, #06b6d4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Sparkles size={12} /> Codeforces Connection Steps:
+                      <Key size={12} /> Codeforces Connection Steps:
                     </div>
                     <div><strong>Step 1:</strong> First, open your browser and log into <a href="https://codeforces.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--neon-cyan)', textDecoration: 'underline' }}>codeforces.com</a>.</div>
                     <div><strong>Step 2:</strong> Copy ONLY your exact handle / username from your profile page (e.g. <code>tourist</code>). Do NOT copy the full link or any extra characters.</div>

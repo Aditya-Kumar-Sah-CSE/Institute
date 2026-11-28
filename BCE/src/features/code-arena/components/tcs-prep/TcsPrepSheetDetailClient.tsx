@@ -26,11 +26,11 @@ import {
   Play,
   Search,
   Share2,
-  Sparkles,
   Star,
   Trophy,
   Users,
   X,
+  Zap,
 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/shared/UserAvatar';
@@ -567,7 +567,7 @@ export default function TcsPrepSheetDetailClient({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {stats.totalXpEarned > 0 && (
                 <span className="sql-xp-burst" title="Total XP earned on TCS Prep & Mocks">
-                  <Sparkles size={12} /> +{stats.totalXpEarned} XP
+                  <Zap size={12} /> +{stats.totalXpEarned} XP
                 </span>
               )}
               <span className="sql-progress-pct">{stats.pct}%</span>

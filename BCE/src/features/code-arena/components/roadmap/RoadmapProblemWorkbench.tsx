@@ -20,7 +20,6 @@ import {
   Pencil,
   Play,
   RotateCcw,
-  Sparkles,
   Terminal,
   Zap,
 } from 'lucide-react';
@@ -610,7 +609,7 @@ export default function RoadmapProblemWorkbench({
       {problem.theory && (
         <div className="rm-info-callout theory">
           <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={14} /> PROBLEM THEORY & PATTERN HINT
+            <Zap size={14} /> PROBLEM THEORY & PATTERN HINT
           </div>
           <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'var(--text-primary, #0f172a)' }}>
             {problem.theory}

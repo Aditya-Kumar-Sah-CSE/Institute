@@ -186,7 +186,7 @@ export default function AgentInteractionCursor({ sessionActive }: AgentInteracti
       case 'verifying': return 'Verifying action...';
       case 'success': return '✓ Action completed';
       case 'error': return '✗ Action error';
-      default: return '✦ Smart Agent Active';
+      default: return 'Smart Agent Active';
     }
   };
 

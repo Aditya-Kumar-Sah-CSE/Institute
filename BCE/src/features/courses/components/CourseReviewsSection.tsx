@@ -7,7 +7,7 @@ import StarRatingInput from './StarRatingInput';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import UserAvatar from '@/components/shared/UserAvatar';
-import { Star, MessageSquare, ShieldAlert, Eye, EyeOff, Trash2, Edit3, CheckCircle, Sparkles, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { Star, MessageSquare, ShieldAlert, Eye, EyeOff, Trash2, Edit3, CheckCircle, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface CourseReviewsSectionProps {
