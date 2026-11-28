@@ -201,7 +201,9 @@ export async function updateSession(request: NextRequest) {
 
   const reqCookies = request.cookies.getAll();
   const authCookies = reqCookies.filter(
-    (c) => c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-')
+    (c) =>
+      !c.name.includes('-code-verifier') &&
+      (c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-'))
   );
   const hasAuthCookie = authCookies.length > 0;
 
@@ -279,7 +281,10 @@ export async function updateSession(request: NextRequest) {
   // clear stale auth cookies so the browser doesn't send broken tokens repeatedly.
   if (hasAuthCookie && (authError || !user)) {
     reqCookies.forEach((c) => {
-      if (c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-')) {
+      if (
+        !c.name.includes('-code-verifier') &&
+        (c.name.startsWith('sb-') || c.name.includes('auth-token') || c.name.startsWith('supabase-'))
+      ) {
         supabaseResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
       }
     });
@@ -294,6 +299,32 @@ export async function updateSession(request: NextRequest) {
     });
     return redirectResponse;
   };
+
+  // Forward Supabase Site-URL fallback auth/recovery links on `/` to `/reset-password` or `/api/auth/callback`
+  if (pathname === '/') {
+    const sp = request.nextUrl.searchParams;
+    const errCode = sp.get('error_code');
+    const errParam = sp.get('error');
+    const authType = sp.get('type');
+    const hasRecoveryError =
+      errCode === 'otp_expired' ||
+      (errParam === 'access_denied' && sp.has('error_description'));
+
+    if (hasRecoveryError || authType === 'recovery') {
+      const targetUrl = request.nextUrl.clone();
+      targetUrl.pathname = '/reset-password';
+      return redirectWithCookies(targetUrl);
+    }
+
+    if (sp.has('code') || sp.has('token_hash')) {
+      const targetUrl = request.nextUrl.clone();
+      targetUrl.pathname = '/api/auth/callback';
+      if (!targetUrl.searchParams.has('redirect_to')) {
+        targetUrl.searchParams.set('redirect_to', '/reset-password');
+      }
+      return redirectWithCookies(targetUrl);
+    }
+  }
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {

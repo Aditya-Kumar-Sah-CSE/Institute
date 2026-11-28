@@ -8,6 +8,25 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { revalidatePath } from 'next/cache';
 
 
+async function resolveSiteUrl(): Promise<string> {
+  try {
+    const { headers } = await import('next/headers');
+    const hdrs = await headers();
+    const origin = hdrs.get('origin');
+    if (origin && /^https?:\/\//i.test(origin)) {
+      return origin.replace(/\/$/, '');
+    }
+    const host = hdrs.get('x-forwarded-host') || hdrs.get('host');
+    if (host) {
+      const proto = hdrs.get('x-forwarded-proto') || (host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https');
+      return `${proto}://${host}`.replace(/\/$/, '');
+    }
+  } catch {
+    // Fallback to env when called outside request header context
+  }
+  return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002').replace(/\/$/, '');
+}
+
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
 
@@ -49,7 +68,7 @@ export async function signUp(formData: FormData) {
     redirect('/login?message=Account created successfully (Local Auto-Confirmed). Please sign in.');
   } else {
     // Production: standard signup flow requiring email confirmation
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+    const siteUrl = await resolveSiteUrl();
   
     const { error } = await supabase.auth.signUp({
       email,
@@ -245,14 +264,15 @@ export async function signOut() {
 
 export async function resetPasswordRequest(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get('email') as string;
+  const email = (formData.get('email') as string)?.trim();
   
   if (!email) {
     return { error: 'Email is required' };
   }
 
+  const siteUrl = await resolveSiteUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'}/api/auth/callback?redirect_to=/reset-password`,
+    redirectTo: `${siteUrl}/reset-password`,
   });
 
   if (error) {
@@ -280,14 +300,18 @@ export async function updatePassword(formData: FormData) {
   }
 
   // Retrieve user ID to send a notification
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    await supabase.from('notifications').insert({
-      user_id: user.id,
-      type: 'system',
-      message: 'Your password was successfully updated.',
-      link: '/profile'
-    });
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'system',
+        message: 'Your password was successfully updated.',
+        link: '/profile'
+      });
+    }
+  } catch {
+    // Non-fatal
   }
 
   redirect('/login?message=Password updated successfully. Please sign in with your new password.');

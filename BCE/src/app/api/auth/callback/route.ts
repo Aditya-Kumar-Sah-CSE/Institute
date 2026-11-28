@@ -8,19 +8,23 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as any;
   const errorParam = searchParams.get('error');
+  const errorCode = searchParams.get('error_code');
   const errorDesc = searchParams.get('error_description');
 
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/';
   const redirectTo = searchParams.get('redirect_to') ?? next;
+  const isRecoveryFlow = type === 'recovery' || redirectTo.includes('/reset-password') || errorCode === 'otp_expired';
 
   const tenant = await getCurrentTenant();
   const baseUrl = generateTenantBaseUrl(tenant?.slug || '');
 
-  // If there's an OAuth error parameter, redirect to login with error
-  if (errorParam) {
-    const errorMsg = errorDesc || errorParam;
-    return NextResponse.redirect(`${origin}${baseUrl || ''}/login?error=${encodeURIComponent(errorMsg)}`);
+  // If there's an OAuth/OTP error parameter, route recovery errors to /reset-password and others to /login
+  if (errorParam || errorCode) {
+    const errorMsg = errorDesc || errorParam || 'Link is invalid or has expired.';
+    const targetPath = isRecoveryFlow ? '/reset-password' : `${baseUrl || ''}/login`;
+    const codeParam = errorCode ? `&error_code=${encodeURIComponent(errorCode)}` : '';
+    return NextResponse.redirect(`${origin}${targetPath}?error=${encodeURIComponent(errorMsg)}${codeParam}`);
   }
 
   // Prevent open redirect: only allow relative paths starting with /
@@ -76,13 +80,20 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${safeRedirect}`);
     } else if (error) {
       const isExpiredOrInvalid = error.message?.toLowerCase().includes('expired') || error.message?.toLowerCase().includes('invalid');
-      const errorMsg = isExpiredOrInvalid 
-        ? 'Verification link has expired or is invalid. Please request a new link below.' 
+      const errorMsg = isExpiredOrInvalid
+        ? isRecoveryFlow
+          ? 'Password reset link has expired or is invalid. Please request a new reset link.'
+          : 'Verification link has expired or is invalid. Please request a new link below.'
         : error.message;
-      return NextResponse.redirect(`${origin}${baseUrl || ''}/verify-email?error=${encodeURIComponent(errorMsg)}`);
+      const targetPath = isRecoveryFlow ? '/reset-password' : `${baseUrl || ''}/verify-email`;
+      return NextResponse.redirect(`${origin}${targetPath}?error=${encodeURIComponent(errorMsg)}&error_code=otp_expired`);
     }
   }
 
   // Fallback for missing/invalid token or OTP error
-  return NextResponse.redirect(`${origin}${baseUrl || ''}/verify-email?error=${encodeURIComponent('Verification link has expired or is invalid. Please request a new link below.')}`);
+  const fallbackTarget = isRecoveryFlow ? '/reset-password' : `${baseUrl || ''}/verify-email`;
+  const fallbackMsg = isRecoveryFlow
+    ? 'Password reset link has expired or is invalid. Please request a new reset link.'
+    : 'Verification link has expired or is invalid. Please request a new link below.';
+  return NextResponse.redirect(`${origin}${fallbackTarget}?error=${encodeURIComponent(fallbackMsg)}&error_code=otp_expired`);
 }

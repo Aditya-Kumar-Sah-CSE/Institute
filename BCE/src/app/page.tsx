@@ -9,6 +9,7 @@ import InstallAppButton from '@/components/pwa/InstallAppButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ArrowRight, BookOpen, Code2, Cpu, Layers } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import AuthRedirectWatcher from './components/AuthRedirectWatcher';
 import ExploreMoreWrapper from './components/ExploreMoreWrapper';
 import LandingCodingClub from './components/LandingCodingClub';
 import LandingCoursePreview from './components/LandingCoursePreview';
@@ -54,6 +55,7 @@ export default async function LandingPage() {
 
   return (
     <div id="top" className="landing-container">
+      <AuthRedirectWatcher />
       {/* Navigation */}
       <header className="landing-nav">
         <a href="#top" className="landing-logo">
