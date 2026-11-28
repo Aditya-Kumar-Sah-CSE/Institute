@@ -2647,26 +2647,17 @@ header.landing-nav .landing-nav-links a.landing-nav-link:hover {
 }
 
 .core-feature-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--human-primary) 16%, var(--bg-secondary)),
-    color-mix(in srgb, var(--human-secondary) 10%, var(--bg-secondary))
-  );
-  border: 1px solid color-mix(in srgb, var(--human-primary) 28%, transparent);
+  background: transparent;
+  border: none;
   color: var(--human-primary);
-  transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease;
+  transition: transform 0.25s ease;
 }
 
 .core-feature-card:hover .core-feature-icon-box {
   transform: scale(1.06);
-  background: linear-gradient(135deg, var(--human-primary), var(--human-secondary));
-  color: #ffffff;
 }
 
 .core-feature-index {

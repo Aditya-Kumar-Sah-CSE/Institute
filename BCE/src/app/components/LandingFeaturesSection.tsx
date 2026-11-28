@@ -82,16 +82,25 @@ function renderFeatureIcon(rawIcon: string | null | undefined, size: number) {
   }
 }
 
-function FeatureVisual({ feature, size = 22 }: { feature: CoreFeatureItem; size?: number }) {
+function FeatureVisual({
+  feature,
+  size = 22,
+  imgSize,
+}: {
+  feature: CoreFeatureItem;
+  size?: number;
+  imgSize?: number;
+}) {
   if (feature.image_url) {
     const isRemote =
       feature.image_url.startsWith('http://') || feature.image_url.startsWith('https://');
+    const px = imgSize ?? size + 6;
     return (
       <Image
         src={feature.image_url}
         alt={feature.title || 'Feature icon'}
-        width={size + 6}
-        height={size + 6}
+        width={px}
+        height={px}
         unoptimized={isRemote}
         style={{ objectFit: 'contain', borderRadius: '6px' }}
       />
@@ -134,7 +143,7 @@ export default function LandingFeaturesSection({ features }: { features: CoreFea
           <article key={feature.id} className="core-feature-card">
             <div className="core-feature-card-top">
               <div className="core-feature-icon-box">
-                <FeatureVisual feature={feature} size={23} />
+                <FeatureVisual feature={feature} size={46} imgSize={58} />
               </div>
               <span className="core-feature-index">
                 {String(idx + 1).padStart(2, '0')}
