@@ -31,11 +31,21 @@ export default async function LandingPage() {
   const companyName = settings?.company_name || hero?.hero_heading || 'Debuggerzz';
   const tagline = settings?.tagline || '';
 
+  const isConfiguredImageHost = (url?: string | null) => {
+    if (!url || !/^https?:\/\//i.test(url)) return true;
+    try {
+      const { hostname } = new URL(url);
+      return hostname.endsWith('.supabase.co') || hostname === 'lh3.googleusercontent.com';
+    } catch {
+      return false;
+    }
+  };
+
   const logoUrl = settings?.logo_url;
-  const isRemoteLogo = !!(logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')));
+  const isRemoteLogo = !isConfiguredImageHost(logoUrl);
 
   const heroImageUrl = hero?.hero_image_url || '/images/hero_img.png';
-  const isRemoteHero = !!(heroImageUrl && (heroImageUrl.startsWith('http://') || heroImageUrl.startsWith('https://')));
+  const isRemoteHero = !isConfiguredImageHost(heroImageUrl);
 
   const coursesCount = coursesRes.data?.length || 0;
   const sheetsList = sheetsRes.data || [];

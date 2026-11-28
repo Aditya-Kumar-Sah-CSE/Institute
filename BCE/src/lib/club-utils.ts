@@ -98,6 +98,7 @@ export function sanitizePublicHref(raw: unknown): string | null {
   return null;
 }
 
+/** Normalizes Google Drive share URLs into fast WebP CDN URLs and validates photo URLs. */
 export function sanitizeClubPhotoUrl(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
@@ -108,6 +109,13 @@ export function sanitizeClubPhotoUrl(raw: unknown): string | null {
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      if (parsed.hostname === 'drive.google.com') {
+        const fileMatch = parsed.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const driveId = fileMatch?.[1] || parsed.searchParams.get('id');
+        if (driveId) {
+          return `https://lh3.googleusercontent.com/d/${driveId}=w720-rw`;
+        }
+      }
       return parsed.toString().slice(0, 1000);
     }
   } catch {

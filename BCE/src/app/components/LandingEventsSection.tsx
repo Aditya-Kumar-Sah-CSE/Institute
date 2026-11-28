@@ -96,6 +96,7 @@ export default function LandingEventsSection({ events }: { events: ClubEvent[] }
                               alt={`Event thumbnail ${photoIdx + 1}`}
                               width={96}
                               height={72}
+                              loading="lazy"
                               unoptimized={isRemoteThumb}
                             />
                           </button>
