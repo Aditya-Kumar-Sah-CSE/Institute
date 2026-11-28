@@ -30,6 +30,7 @@ const ITEM_GROUPS: Record<string, string> = {
   'Administration': 'Study',
   'Submissions': 'Study',
   'Review Submissions': 'Study',
+  'Coding Club': 'Study',
   
   'Code Arena': 'Coding',
   'Coding Sheets': 'Coding',

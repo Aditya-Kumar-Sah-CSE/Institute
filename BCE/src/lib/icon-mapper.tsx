@@ -18,7 +18,8 @@ import {
   Database,
   Gamepad2,
   Vote,
-  Settings
+  Settings,
+  Award
 } from 'lucide-react';
 
 export function getIcon(name: string, props?: any) {
@@ -46,6 +47,7 @@ export function getIcon(name: string, props?: any) {
     case 'Database':
     case 'SQL': return <Database {...iconProps} />;
     case 'Game': return <Gamepad2 {...iconProps} />;
+    case 'Award': return <Award {...iconProps} />;
     default: return <LayoutDashboard {...iconProps} />;
   }
 }

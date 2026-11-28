@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { requireSuperAdmin } from '@/lib/super-admin';
+import { requireAdmin } from '@/lib/super-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit-logger';
 import {
@@ -27,7 +27,7 @@ function invalidateClubCache() {
 
 export async function GET() {
   try {
-    await requireSuperAdmin();
+    await requireAdmin();
     const db = await createAdminClient();
 
     const [{ data: mentors, error: mErr }, { data: coordinators, error: cErr }, { data: events, error: eErr }] =
@@ -67,14 +67,14 @@ export async function GET() {
       },
     });
   } catch (err: any) {
-    const status = err?.message?.includes('Forbidden') ? 403 : 401;
+    const status = err?.status || (err?.message?.includes('Forbidden') ? 403 : 401);
     return NextResponse.json({ success: false, error: err?.message || 'Unauthorized' }, { status });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireSuperAdmin();
+    const admin = await requireAdmin();
     const db = await createAdminClient();
     const body = await request.json();
     const entity = body?.entity;
@@ -230,14 +230,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: false, error: 'Unknown entity type.' }, { status: 400 });
   } catch (err: any) {
-    const status = err?.message?.includes('Forbidden') ? 403 : 401;
+    const status = err?.status || (err?.message?.includes('Forbidden') ? 403 : 401);
     return NextResponse.json({ success: false, error: err?.message || 'Unauthorized' }, { status });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const admin = await requireSuperAdmin();
+    const admin = await requireAdmin();
     const { entity, id } = await request.json();
 
     if (!UUID_RE.test(String(id || '')) || !['mentor', 'coordinator', 'event'].includes(entity)) {
@@ -272,7 +272,7 @@ export async function DELETE(request: Request) {
     invalidateClubCache();
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    const status = err?.message?.includes('Forbidden') ? 403 : 401;
+    const status = err?.status || (err?.message?.includes('Forbidden') ? 403 : 401);
     return NextResponse.json({ success: false, error: err?.message || 'Unauthorized' }, { status });
   }
 }

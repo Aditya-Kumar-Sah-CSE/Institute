@@ -86,6 +86,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Enrollments', href: '/admin/enrollments', icon: 'Enrollments' },
   { label: 'Administration', href: '/admin/students', icon: 'Students' },
   { label: 'Submissions', href: '/admin/submissions', icon: 'Submissions' },
+  { label: 'Coding Club', href: '/admin/coding-club', icon: 'Award' },
   { label: 'Batch Doubts', href: '/doubts', icon: 'Doubts' },
   { label: 'Feedback', href: '/admin/feedback', icon: 'Feedback' },
   { label: 'Notices', href: '/admin/notices', icon: 'Notices' },

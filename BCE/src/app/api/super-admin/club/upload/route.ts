@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
-import { requireSuperAdmin } from '@/lib/super-admin';
+import { requireAdmin } from '@/lib/super-admin';
 import { createAdminClient } from '@/lib/supabase/server';
 
 const ALLOWED_MIME_EXT: Record<string, string> = {
@@ -15,7 +15,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
-    await requireSuperAdmin();
+    await requireAdmin();
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const { data: pub } = db.storage.from('branding').getPublicUrl(storagePath);
     return NextResponse.json({ success: true, url: pub.publicUrl });
   } catch (err: any) {
-    const status = err?.message?.includes('Forbidden') ? 403 : 401;
+    const status = err?.status || (err?.message?.includes('Forbidden') ? 403 : 401);
     return NextResponse.json({ success: false, error: err?.message || 'Unauthorized' }, { status });
   }
 }

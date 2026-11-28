@@ -19,10 +19,8 @@ import {
   Check,
   Info,
   X,
-  Award,
 } from 'lucide-react';
 import { SuperAdminBadge } from '@/components/super-admin/SuperAdminBadge';
-import SuperAdminClubManager from '@/components/super-admin/SuperAdminClubManager';
 import { safeFetch } from '@/lib/api-client';
 
 interface ToastMessage {
@@ -34,7 +32,7 @@ interface ToastMessage {
 export default function SuperAdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'emergency' | 'features' | 'users' | 'audit' | 'club'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'emergency' | 'features' | 'users' | 'audit'>('overview');
 
   const [overviewData, setOverviewData] = useState<any>(null);
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({});
@@ -81,8 +79,7 @@ export default function SuperAdminDashboardPage() {
       tab === 'emergency' ||
       tab === 'features' ||
       tab === 'users' ||
-      tab === 'audit' ||
-      tab === 'club'
+      tab === 'audit'
     ) {
       setActiveTab(tab);
     }
@@ -440,24 +437,6 @@ export default function SuperAdminDashboardPage() {
           >
             <FileText size={16} /> Audit Logs
           </button>
-
-          <button
-            onClick={() => setActiveTab('club')}
-            style={{
-              background: activeTab === 'club' ? 'rgba(14, 165, 233, 0.2)' : 'transparent',
-              border: activeTab === 'club' ? '1px solid #0ea5e9' : '1px solid transparent',
-              color: activeTab === 'club' ? '#38bdf8' : '#94a3b8',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Award size={16} /> Coding Club
-          </button>
         </div>
 
         {/* Tab 1: Overview */}
@@ -789,9 +768,6 @@ export default function SuperAdminDashboardPage() {
             </div>
           </div>
         )}
-
-        {/* Tab 6: Coding Club Management */}
-        {activeTab === 'club' && <SuperAdminClubManager onToast={addToast} />}
       </div>
     </div>
   );

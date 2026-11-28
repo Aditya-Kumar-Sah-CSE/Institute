@@ -119,3 +119,52 @@ export async function requireSuperAdmin() {
     role: userRole,
   };
 }
+
+/**
+ * Server-side security guard that enforces Admin-or-above authorization.
+ * Accepts admin, developer, super_admin, platform_owner roles.
+ */
+export async function requireAdmin() {
+  const { createClient, createAdminClient } = await import('@/lib/supabase/server');
+  const { isAdminRole } = await import('@/lib/role-utils');
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    const err: any = new Error('Authentication required.');
+    err.status = 401;
+    err.code = 'UNAUTHENTICATED';
+    throw err;
+  }
+
+  let userRole = normalizeRole(user.user_metadata?.role);
+
+  try {
+    const adminSupabase = await createAdminClient();
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role) {
+      userRole = normalizeRole(profile.role);
+    }
+  } catch (e) {
+    console.warn('[requireAdmin] Could not query profiles table for user role:', e);
+  }
+
+  if (!isAdminRole(userRole) && !isSuperAdmin({ email: user.email, role: userRole })) {
+    const err: any = new Error('Admin access required.');
+    err.status = 403;
+    err.code = 'FORBIDDEN_ADMIN_ONLY';
+    throw err;
+  }
+
+  return {
+    user,
+    email: user.email!,
+    id: user.id,
+    role: userRole,
+  };
+}
