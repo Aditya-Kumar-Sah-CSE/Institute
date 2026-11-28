@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { assertNotSuperAdminTarget, canAssignRole, SUPER_ADMIN_EMAIL } from '@/lib/super-admin';
+import { assertNotSuperAdminTarget, canAssignRole, isSuperAdmin, SUPER_ADMIN_EMAIL } from '@/lib/super-admin';
 import { isAdminRole } from '@/lib/role-utils';
 import { logAuditAction } from '@/lib/audit-logger';
 
@@ -19,7 +19,7 @@ export async function PATCH(
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
-    if (!isAdminRole(profile?.role)) {
+    if (!isAdminRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -95,7 +95,7 @@ export async function DELETE(
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
-    if (!isAdminRole(profile?.role)) {
+    if (!isAdminRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

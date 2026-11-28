@@ -4,6 +4,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { validateFiles, uploadFiles, serializeAttachmentUrls } from '@/lib/attachments';
 import { uploadFilesServerSide } from '@/lib/attachments.server';
+import { isAdminRole, isInstructorRole } from '@/lib/role-utils';
+import { isSuperAdmin } from '@/lib/super-admin';
 
 // Authorization helper — verifies the user has admin or instructor role
 async function requireBuilderRole() {
@@ -17,11 +19,11 @@ async function requireBuilderRole() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'instructor' && profile.role !== 'developer')) {
+  if (!isInstructorRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) {
     throw new Error('Unauthorized: admin, instructor, or developer role required');
   }
 
-  return { supabase, user, role: profile.role };
+  return { supabase, user, role: profile?.role };
 }
 
 // --- LESSON ACTIONS ---
@@ -33,7 +35,7 @@ export async function generateLessonUploadUrls(courseId: string, files: { name: 
   const { data: course } = await supabase.from('courses').select('id, created_by').eq('id', courseId).single();
   if (!course) return { error: 'Course not found' };
   
-  if (role !== 'admin' && role !== 'developer') {
+  if (!isAdminRole(role) && !isSuperAdmin({ email: user.email, role })) {
     const isCreator = course.created_by === user.id;
     const { data: isInstructor } = await supabase
       .from('course_instructors')

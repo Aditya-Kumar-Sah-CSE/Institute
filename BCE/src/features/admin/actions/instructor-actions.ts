@@ -2,7 +2,8 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { isAdminRole } from '@/lib/role-utils';
+import { isSuperAdmin } from '@/lib/super-admin';
 
 export async function approveInstructor(applicationId: string, userId: string) {
   try {
@@ -12,7 +13,7 @@ export async function approveInstructor(applicationId: string, userId: string) {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) throw new Error('Unauthorized');
     const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') throw new Error('Unauthorized');
+    if (!isAdminRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) throw new Error('Unauthorized');
 
     const adminSb = await createAdminClient();
 
@@ -58,7 +59,7 @@ export async function rejectInstructor(applicationId: string, userId: string) {
     const { data: { user } } = await sb.auth.getUser();
     if (!user) throw new Error('Unauthorized');
     const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') throw new Error('Unauthorized');
+    if (!isAdminRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) throw new Error('Unauthorized');
 
     const adminSb = await createAdminClient();
 

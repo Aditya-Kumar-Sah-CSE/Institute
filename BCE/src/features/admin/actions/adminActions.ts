@@ -2,7 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { SUPER_ADMIN_EMAIL } from '@/lib/constants';
+import { isAdminRole } from '@/lib/role-utils';
+import { isSuperAdmin, isSuperAdminEmail } from '@/lib/super-admin';
 
 // Using the service role key to bypass RLS and interact with auth.users
 const supabaseAdmin = createClient(
@@ -10,26 +11,32 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function authorizeAdminActor(unauthorizedMessage: string) {
+  const { createClient: createServerClient } = await import('@/lib/supabase/server');
+  const supabaseUser = await createServerClient();
+  const { data: { user } } = await supabaseUser.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' as const };
+  }
+
+  const { data: profile } = await supabaseUser
+    .from('profiles')
+    .select('role, email')
+    .eq('id', user.id)
+    .single();
+
+  if (!isAdminRole(profile?.role) && !isSuperAdmin({ email: user.email, role: profile?.role })) {
+    return { error: unauthorizedMessage };
+  }
+
+  return { supabaseUser, user, profile };
+}
+
 export async function deleteStudent(studentId: string) {
   try {
-    // Check if user is an admin before allowing delete
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can delete students.' };
-    }
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can delete students.');
+    if ('error' in auth) return { error: auth.error };
 
     const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
@@ -37,7 +44,7 @@ export async function deleteStudent(studentId: string) {
       .eq('id', studentId)
       .single();
 
-    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdminEmail(targetProfile?.email)) {
       return { error: 'Cannot delete the developer account.' };
     }
 
@@ -59,23 +66,9 @@ export async function deleteStudent(studentId: string) {
 
 export async function deleteEnrollment(enrollmentId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can delete enrollments.' };
-    }
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can delete enrollments.');
+    if ('error' in auth) return { error: auth.error };
+    const { supabaseUser } = auth;
 
     // Fetch enrollment info first to get user_id and course title
     const { data: enrollment } = await supabaseUser
@@ -115,22 +108,18 @@ export async function deleteEnrollment(enrollmentId: string) {
 
 export async function makeAdmin(userId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can assign admin roles.');
+    if ('error' in auth) return { error: auth.error };
+    const { supabaseUser } = auth;
 
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
+    const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .select('email')
+      .eq('id', userId)
       .single();
 
-    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can assign admin roles.' };
+    if (isSuperAdminEmail(targetProfile?.email)) {
+      return { error: 'Cannot modify the Platform Owner role.' };
     }
 
     // Update user role to admin
@@ -160,23 +149,9 @@ export async function makeAdmin(userId: string) {
 
 export async function makeFaculty(userId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can assign roles.' };
-    }
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can assign roles.');
+    if ('error' in auth) return { error: auth.error };
+    const { supabaseUser } = auth;
 
     const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
@@ -184,11 +159,10 @@ export async function makeFaculty(userId: string) {
       .eq('id', userId)
       .single();
 
-    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdminEmail(targetProfile?.email)) {
       return { error: 'Cannot demote the developer.' };
     }
 
-    // Prevent demoting the developer (you can add a check for SUPER_ADMIN_EMAIL here if needed, but we'll assume the UI handles it or they can't demote themselves easily without it being tricky. Actually, let's just update the role)
     // Update user role to instructor
     const { error } = await supabaseAdmin
       .from('profiles')
@@ -216,23 +190,9 @@ export async function makeFaculty(userId: string) {
 
 export async function makeStudent(userId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can assign roles.' };
-    }
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can assign roles.');
+    if ('error' in auth) return { error: auth.error };
+    const { supabaseUser } = auth;
 
     const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
@@ -240,7 +200,7 @@ export async function makeStudent(userId: string) {
       .eq('id', userId)
       .single();
 
-    if (targetProfile?.email === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdminEmail(targetProfile?.email)) {
       return { error: 'Cannot demote the developer.' };
     }
 
@@ -278,22 +238,18 @@ export async function makeStudent(userId: string) {
 
 export async function makeDeveloper(userId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can assign the Developer role.');
+    if ('error' in auth) return { error: auth.error };
+    const { supabaseUser } = auth;
 
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
+    const { data: targetProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .select('email')
+      .eq('id', userId)
       .single();
 
-    if (user.email?.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase() && profile?.role !== 'admin' && profile?.role !== 'developer') {
-      return { error: 'Unauthorized. Only admins or developers can assign the Developer role.' };
+    if (isSuperAdminEmail(targetProfile?.email)) {
+      return { error: 'Cannot modify the Platform Owner role.' };
     }
 
     // Update user role to developer
@@ -323,23 +279,8 @@ export async function makeDeveloper(userId: string) {
 
 export async function impersonateUser(targetUserId: string) {
   try {
-    const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    const supabaseUser = await createServerClient();
-    const { data: { user } } = await supabaseUser.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { data: profile } = await supabaseUser
-      .from('profiles')
-      .select('role, email')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin' && profile?.role !== 'developer' && user.email !== SUPER_ADMIN_EMAIL) {
-      return { error: 'Unauthorized. Only admins or developers can impersonate users.' };
-    }
+    const auth = await authorizeAdminActor('Unauthorized. Only admins or developers can impersonate users.');
+    if ('error' in auth) return { error: auth.error };
 
     const { data: targetProfile, error: targetError } = await supabaseAdmin
       .from('profiles')
